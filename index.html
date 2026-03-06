@@ -820,7 +820,7 @@ body{
 
 /* ── NOTES GRID ── */
 .notes-wrap{padding:90px 16px 14px;background:transparent;}
-.notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px;}
 .ncard{
   backdrop-filter:blur(28px) saturate(2.2) brightness(1.08);
   -webkit-backdrop-filter:blur(28px) saturate(2.2) brightness(1.08);
@@ -2009,7 +2009,7 @@ function openFP(id){
   document.getElementById(id).classList.add('open');
   var tb = id==='fpNote'?document.getElementById('tbNote'):document.getElementById('tbSermon');
   if(tb){document.body.appendChild(tb);tb.classList.add('active');}
-  history.pushState({fp:id}, '');
+  history.pushState({fp:id}, '', window.location.href);
 }
 function closeFP(id){
   document.getElementById(id).classList.remove('open');
@@ -2017,8 +2017,14 @@ function closeFP(id){
   if(tb){tb.classList.remove('active');}
 }
 window.addEventListener('popstate', function(e){
-  if(e.state && e.state.fp){
-    closeFP(e.state.fp);
+  // Cek apakah ada fullpage yang sedang open
+  var fps = ['fpNote','fpSermon'];
+  for(var i=0;i<fps.length;i++){
+    var el = document.getElementById(fps[i]);
+    if(el && el.classList.contains('open')){
+      closeFP(fps[i]);
+      return;
+    }
   }
 });
 
