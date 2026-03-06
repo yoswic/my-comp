@@ -1412,9 +1412,13 @@ body{
       <button class="jmodal-x" onclick="document.getElementById('mJ').classList.remove('open');document.body.style.overflow='';">✕</button>
     </div>
     <div class="jmodal-body">
-      <div class="jmodal-section" id="jGcalSection" style="display:none;">
-        <div class="jmodal-label">Calendar Events</div>
-        <div id="jGcalEvents" style="padding:0 12px 10px;"></div>
+      <div class="jmodal-section">
+        <div class="jmodal-label" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Events</span>
+          <button onclick="jAddEvent()" style="background:none;border:none;color:var(--accent);font-size:18px;font-weight:300;cursor:pointer;line-height:1;padding:0 0 2px;">+</button>
+        </div>
+        <div id="jGcalEvents" style="padding:4px 16px 4px;"></div>
+        <div id="jMyEvents" style="padding:0 16px 8px;"></div>
       </div>
       <div class="jmodal-section">
         <div class="jmodal-label">Summary</div>
@@ -2069,9 +2073,13 @@ function sJ(){
   var verse=document.getElementById('jVerse').value.trim();
   if(!summary&&!inspiration&&!verse)return;
   var existing=D.journals.findIndex(function(j){return j.date===jCurrentDate;});
-  var entry={id:Date.now(),date:jCurrentDate,summary:summary,inspiration:inspiration,verse:verse};
-  if(existing>=0){entry.id=D.journals[existing].id;D.journals[existing]=entry;}
-  else{D.journals.unshift(entry);}
+  if(existing>=0){
+    D.journals[existing].summary=summary;
+    D.journals[existing].inspiration=inspiration;
+    D.journals[existing].verse=verse;
+  } else {
+    D.journals.unshift({id:Date.now(),date:jCurrentDate,summary:summary,inspiration:inspiration,verse:verse,events:[]});
+  }
   save();renderCalendar();
   document.getElementById('mJ').classList.remove('open');document.body.style.overflow='';
 }
@@ -2246,13 +2254,11 @@ function openJournal(dateStr){
   document.getElementById('jSummary').value=existing?existing.summary||'':'';
   document.getElementById('jInspiration').value=existing?existing.inspiration||'':'';
   document.getElementById('jVerse').value=existing?existing.verse||'':'';
-  // GCal events
-  var events=getGcalEventsForDate(dateStr);
-  var gcalSection=document.getElementById('jGcalSection');
-  var gcalEl=document.getElementById('jGcalEvents');
-  if(events.length){
-    gcalSection.style.display='block';
-    gcalEl.innerHTML=events.map(function(e){
+  // GCal events (read-only)
+  var events = getGcalEventsForDate(dateStr);
+  var gcalEl = document.getElementById('jGcalEvents');
+  if (events.length) {
+    gcalEl.innerHTML = events.map(function(e){
       return '<div class="gcal-event-row">'
         +'<div class="gcal-event-dot" style="background:'+e.color+';"></div>'
         +'<div class="gcal-event-title">'+e.title+'</div>'
@@ -2260,9 +2266,55 @@ function openJournal(dateStr){
         +'</div>';
     }).join('');
   } else {
-    gcalSection.style.display='none';
+    gcalEl.innerHTML = '';
   }
+  // Manual events
+  renderMyEvents();
   document.getElementById('mJ').classList.add('open');document.body.style.overflow='hidden';
+}
+
+function renderMyEvents(){
+  var existing=D.journals.find(function(j){return j.date===jCurrentDate;});
+  var myEvents=(existing&&existing.events)||[];
+  var el=document.getElementById('jMyEvents');
+  var gcalEl=document.getElementById('jGcalEvents');
+  var hasGcal=gcalEl&&gcalEl.innerHTML.trim()!=='';
+  if(!myEvents.length){
+    el.innerHTML=!hasGcal?'<div style="font-size:13px;color:var(--text3);">No events for this day</div>':'';
+    return;
+  }
+  el.innerHTML=myEvents.map(function(ev,i){
+    return '<div class="gcal-event-row" style="justify-content:space-between;">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex:1;">'
+      +'<div class="gcal-event-dot" style="background:var(--accent);"></div>'
+      +'<div class="gcal-event-title">'+ev.title+'</div>'
+      +'<div class="gcal-event-time">'+ev.time+'</div>'
+      +'</div>'
+      +'<button onclick="jDeleteEvent('+i+')" style="background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:0 0 0 8px;">✕</button>'
+      +'</div>';
+  }).join('');
+}
+
+function jAddEvent(){
+  var title=prompt('Event name:');
+  if(!title||!title.trim())return;
+  var time=prompt('Time (e.g. 09:00) or leave blank for All day:');
+  var ev={title:title.trim(), time:time&&time.trim()?time.trim():'All day'};
+  var idx=D.journals.findIndex(function(j){return j.date===jCurrentDate;});
+  if(idx>=0){
+    if(!D.journals[idx].events)D.journals[idx].events=[];
+    D.journals[idx].events.push(ev);
+  } else {
+    D.journals.unshift({id:Date.now(),date:jCurrentDate,summary:'',inspiration:'',verse:'',events:[ev]});
+  }
+  save();renderMyEvents();
+}
+
+function jDeleteEvent(i){
+  var idx=D.journals.findIndex(function(j){return j.date===jCurrentDate;});
+  if(idx<0)return;
+  D.journals[idx].events.splice(i,1);
+  save();renderMyEvents();
 }
 
 function rT(){
@@ -2518,9 +2570,11 @@ function gFetchCalendarEvents() {
   fetch(url, {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r) {
+    console.log('GCal HTTP status:', r.status);
     if (r.status === 401) { gClearToken(); gSetStatus('local'); return null; }
     return r.json();
   }).then(function(data) {
+    console.log('GCal response:', JSON.stringify(data));
     if (!data || !data.items) return;
     gcalEvents = {};
     data.items.forEach(function(ev) {
