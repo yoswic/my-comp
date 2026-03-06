@@ -2573,7 +2573,7 @@ document.addEventListener('click',function(e){
 
 var gcalFetchedMin = null, gcalFetchedMax = null;
 
-function gFetchCalendarEvents() {
+function showDebug(msg) {
   var el = document.getElementById('gcalDebug');
   if (!el) return;
   el.textContent = '🗓 GCal: ' + msg;
