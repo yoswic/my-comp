@@ -2939,6 +2939,27 @@ function vT(id){openTaskFP(id);}
 var _sd=document.getElementById('sDate');if(_sd)_sd.value=td();
 document.getElementById('fabBtn').onclick=function(){fabActions[curTab]();};
 ra();
+
+// Fallback: coba auto-reconnect setelah semua script load
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    var saved = gLoadToken();
+    if (saved && !gAuth.connected) {
+      gAuth.token = saved.token;
+      gAuth.email = saved.email;
+      gAuth.connected = true;
+      gSetStatus('connected');
+      gFindOrCreateFile();
+      gFetchCalendarEvents();
+      showDebug('load fallback: fetching...');
+    } else if (gAuth.connected) {
+      gFetchCalendarEvents();
+      showDebug('already connected: fetching...');
+    } else {
+      showDebug('tidak ada token tersimpan');
+    }
+  }, 1500);
+});
 </script>
 </body>
 </html>
