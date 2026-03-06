@@ -1729,18 +1729,12 @@ var gcalEvents = {}; // { 'YYYY-MM-DD': [{title, time, color}, ...] }
 function gTryAutoReconnect() {
   var saved = gLoadToken();
   if (!saved) return;
-  // Cek apakah token lama punya scope calendar
-  if (!saved.hasCalendar) {
-    // Token lama belum punya scope calendar, hapus dan minta login ulang
-    gClearToken();
-    return;
-  }
   gAuth.token = saved.token;
   gAuth.email = saved.email;
   gAuth.connected = true;
-  gSetStatus('syncing');
-  gGetUserInfo(); // gFetchCalendarEvents dipanggil di dalam gGetUserInfo
+  gSetStatus('connected');
   gFindOrCreateFile();
+  gFetchCalendarEvents();
 }
 
 function gConnect() {
@@ -1755,8 +1749,9 @@ function gConnect() {
       if (resp.error) { gSetStatus('error'); return; }
       gAuth.token = resp.access_token;
       gAuth.connected = true;
-      gGetUserInfo(); // gFetchCalendarEvents dipanggil di dalam gGetUserInfo
+      gGetUserInfo();
       gFindOrCreateFile();
+      gFetchCalendarEvents();
     }
   });
   client.requestAccessToken();
@@ -1781,11 +1776,9 @@ function gGetUserInfo() {
     gAuth.email = info.email || '';
     gSaveToken(gAuth.token, gAuth.email);
     gSetStatus('connected');
-    gFetchCalendarEvents(); // panggil setelah token tersimpan dengan flag hasCalendar
   }).catch(function(){
     gSaveToken(gAuth.token, gAuth.email);
     gSetStatus('connected');
-    gFetchCalendarEvents();
   });
 }
 
