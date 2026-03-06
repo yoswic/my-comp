@@ -1677,7 +1677,7 @@ var EMOJI={bahagia:':-)',tenang:'-_-',biasa:'...',sedih:':-(',kesal:'>.<'};
 // Replace CLIENT_ID dengan Client ID dari Google Cloud Console kamu
 // ══════════════════════════════════════════════
 var GDRIVE_CLIENT_ID = '327802388523-7s84h5ckpob6murf08vnjhl94lllkqvs.apps.googleusercontent.com';
-var GDRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
+var GDRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/calendar.readonly';
 var GDRIVE_FILE_NAME = 'mycompanion-data.json';
 
 var gAuth = {
@@ -1688,22 +1688,52 @@ var gAuth = {
   email: null,
 };
 
+// ── Token persistence helpers ──
+function gSaveToken(token, email) {
+  try {
+    var expiry = Date.now() + (55 * 60 * 1000); // 55 menit (token Google expire 1 jam)
+    localStorage.setItem('mc7_gtoken', JSON.stringify({ token: token, expiry: expiry, email: email || '' }));
+  } catch(e) {}
+}
+function gLoadToken() {
+  try {
+    var raw = localStorage.getItem('mc7_gtoken');
+    if (!raw) return null;
+    var data = JSON.parse(raw);
+    if (Date.now() > data.expiry) { localStorage.removeItem('mc7_gtoken'); return null; }
+    return data;
+  } catch(e) { return null; }
+}
+function gClearToken() {
+  try { localStorage.removeItem('mc7_gtoken'); } catch(e) {}
+}
+
 // ── Load Google Identity Services ──
 (function(){
   var s = document.createElement('script');
   s.src = 'https://accounts.google.com/gsi/client';
   s.async = true;
   s.defer = true;
+  s.onload = function() { gTryAutoReconnect(); };
   document.head.appendChild(s);
 })();
+
+// ── Auto-reconnect saat refresh jika token masih valid ──
+function gTryAutoReconnect() {
+  var saved = gLoadToken();
+  if (!saved) return;
+  gAuth.token = saved.token;
+  gAuth.email = saved.email;
+  gAuth.connected = true;
+  gSetStatus('syncing');
+  gGetUserInfo();
+  gFindOrCreateFile();
+  gFetchCalendarEvents();
+}
 
 function gConnect() {
   if (!window.google || !window.google.accounts) {
     alert('Google SDK belum load. Coba lagi sebentar.');
-    return;
-  }
-  if (GDRIVE_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
-    alert('Masukkan Google Client ID dulu di kode (cari YOUR_CLIENT_ID_HERE).\n\nCara dapat Client ID:\n1. Buka console.cloud.google.com\n2. Buat project baru\n3. Enable Drive API\n4. Buat OAuth 2.0 Client ID (Web application)\n5. Tambah authorized origin: file:// dan http://localhost\n6. Copy Client ID ke kode ini');
     return;
   }
   var client = google.accounts.oauth2.initTokenClient({
@@ -1715,6 +1745,7 @@ function gConnect() {
       gAuth.connected = true;
       gGetUserInfo();
       gFindOrCreateFile();
+      gFetchCalendarEvents();
     }
   });
   client.requestAccessToken();
@@ -1724,7 +1755,10 @@ function gDisconnect() {
   if (gAuth.token) {
     google.accounts.oauth2.revoke(gAuth.token);
   }
+  gClearToken(); // hapus token dari localStorage
   gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null };
+  gcalEvents = {};
+  renderCalendar();
   gSetStatus('local');
   // Keep local data intact
 }
@@ -1734,8 +1768,10 @@ function gGetUserInfo() {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r){ return r.json(); }).then(function(info){
     gAuth.email = info.email || '';
+    gSaveToken(gAuth.token, gAuth.email); // simpan token ke localStorage
     gSetStatus('connected');
   }).catch(function(){
+    gSaveToken(gAuth.token, gAuth.email);
     gSetStatus('connected');
   });
 }
@@ -2115,7 +2151,7 @@ function renderCalendar(){
   var entryDates={};
   D.journals.forEach(function(j){entryDates[j.date]=true;});
   var gcalDates={};
-  if(gcalConnected){MOCK_GCAL_EVENTS.forEach(function(e){gcalDates[e.date]=true;});}
+  Object.keys(gcalEvents).forEach(function(d){ if(gcalEvents[d].length>0) gcalDates[d]=true; });
   var html='';
   for(var i=0;i<firstDay;i++){
     var d=daysInPrev-firstDay+1+i;
@@ -2466,48 +2502,61 @@ document.addEventListener('click',function(e){
     document.getElementById('moveTagPop').classList.remove('show');
 });
 
-// ── GOOGLE CALENDAR MOCK ──
-var gcalConnected=false;
-var MOCK_GCAL_EVENTS=[
-  {date:'2026-03-06',title:'Team Standup',time:'09:00',color:'#4285f4'},
-  {date:'2026-03-06',title:'Lunch with Zharfs',time:'12:30',color:'#ea4335'},
-  {date:'2026-03-08',title:'Sunday Service',time:'08:00',color:'#34a853'},
-  {date:'2026-03-10',title:'Mom\'s Birthday',time:'All day',color:'#ea4335'},
-  {date:'2026-03-12',title:'GMS Conference',time:'18:00',color:'#34a853'},
-  {date:'2026-03-15',title:'Cell Group',time:'19:00',color:'#34a853'},
-  {date:'2026-03-17',title:'Doctor Appointment',time:'10:00',color:'#fbbc05'},
-  {date:'2026-03-20',title:'Project Deadline',time:'All day',color:'#ea4335'},
-  {date:'2026-03-22',title:'Sunday Service',time:'08:00',color:'#34a853'},
-  {date:'2026-03-25',title:'Easter Sunday',time:'All day',color:'#34a853'},
-  {date:'2026-03-29',title:'Sunday Service',time:'08:00',color:'#34a853'},
-];
+// ── GOOGLE CALENDAR (REAL API) ──
+var gcalEvents = {}; // { 'YYYY-MM-DD': [{title, time, color}, ...] }
 
-function toggleGcal(){
-  gcalConnected=!gcalConnected;
-  var btn=document.getElementById('gcalBtn');
-  var lbl=document.getElementById('gcalLabel');
-  if(gcalConnected){
-    btn.classList.add('connected');
-    lbl.textContent='GCal Connected';
-    document.getElementById('syncPill').textContent='SYNCED';
-    document.getElementById('syncPill').style.background='rgba(52,199,123,0.1)';
-    document.getElementById('syncPill').style.borderColor='rgba(52,199,123,0.3)';
-    document.getElementById('syncPill').style.color='#1a6a40';
-  } else {
-    btn.classList.remove('connected');
-    lbl.textContent='Google Calendar';
-    document.getElementById('syncPill').textContent='LOCAL';
-    document.getElementById('syncPill').style.background='';
-    document.getElementById('syncPill').style.borderColor='';
-    document.getElementById('syncPill').style.color='';
-  }
-  renderCalendar();
+function gFetchCalendarEvents() {
+  if (!gAuth.token) return;
+  // Ambil events 3 bulan ke depan dan 1 bulan ke belakang
+  var now = new Date();
+  var timeMin = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+  var timeMax = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString();
+  var url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
+    + '?timeMin=' + encodeURIComponent(timeMin)
+    + '&timeMax=' + encodeURIComponent(timeMax)
+    + '&singleEvents=true&orderBy=startTime&maxResults=250';
+  fetch(url, {
+    headers: { Authorization: 'Bearer ' + gAuth.token }
+  }).then(function(r) {
+    if (r.status === 401) { gClearToken(); gSetStatus('local'); return null; }
+    return r.json();
+  }).then(function(data) {
+    if (!data || !data.items) return;
+    gcalEvents = {};
+    data.items.forEach(function(ev) {
+      var dateStr = (ev.start.dateTime || ev.start.date || '').split('T')[0];
+      if (!dateStr) return;
+      if (!gcalEvents[dateStr]) gcalEvents[dateStr] = [];
+      var timeStr = 'All day';
+      if (ev.start.dateTime) {
+        var d = new Date(ev.start.dateTime);
+        var h = d.getHours().toString().padStart(2,'0');
+        var m = d.getMinutes().toString().padStart(2,'0');
+        timeStr = h + ':' + m;
+      }
+      // Warna berdasarkan colorId Google Calendar
+      var colors = {
+        '1':'#7986cb','2':'#33b679','3':'#8e24aa','4':'#e67c73',
+        '5':'#f6c026','6':'#f5511d','7':'#039be5','8':'#616161',
+        '9':'#3f51b5','10':'#0b8043','11':'#d60000'
+      };
+      gcalEvents[dateStr].push({
+        title: ev.summary || '(no title)',
+        time: timeStr,
+        color: colors[ev.colorId] || '#4285f4'
+      });
+    });
+    renderCalendar();
+  }).catch(function(e) { console.log('GCal error', e); });
 }
 
-function getGcalEventsForDate(dateStr){
-  if(!gcalConnected)return[];
-  return MOCK_GCAL_EVENTS.filter(function(e){return e.date===dateStr;});
+function getGcalEventsForDate(dateStr) {
+  return gcalEvents[dateStr] || [];
 }
+
+// ── GOOGLE CALENDAR MOCK (disabled, replaced by real API above) ──
+var gcalConnected = false;
+function toggleGcal() { /* not used anymore */ }
 
 // ── GOOGLE DRIVE MOCK ──
 var gdriveConnected=false;
