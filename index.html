@@ -871,7 +871,7 @@ body{
   -webkit-user-select:none;
   line-height:1;
 }
-.ncard-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:5px;line-height:1.3;padding-right:24px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ncard-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:5px;line-height:1.3;padding-right:24px;min-height:34px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .ncard-body{font-size:11.5px;color:var(--text2);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-weight:400;}
 .ncard-foot{display:flex;flex-direction:column;align-items:flex-start;margin-top:auto;padding-top:6px;gap:1px;min-width:0;}
 .ncard-date{font-size:10px;color:var(--text3);font-weight:700;flex-shrink:0;white-space:nowrap;padding-left:0;}
@@ -1200,18 +1200,18 @@ body{
 .ntb-popup-divider{height:1px;background:rgba(0,0,0,0.06);margin:4px 8px;}
 .ntb-bottom-row{display:flex;align-items:center;gap:10px;position:relative;width:calc(100vw - 40px);max-width:380px;margin:0 auto;justify-content:space-between;}
 .ntb-meta-float{
-  flex:1;min-width:0;max-width:calc(100% - 60px);
+  flex:1;min-width:0;max-width:calc(100% - 60px);height:50px;
   backdrop-filter:blur(40px) saturate(2);-webkit-backdrop-filter:blur(40px) saturate(2);
   background:rgba(255,255,255,0.55);border:1px solid rgba(0,0,0,0.06);
   box-shadow:inset 1px 1px 0 rgba(255,255,255,1),inset -1px -1px 0 rgba(255,255,255,0.6),0 4px 20px rgba(0,0,0,0.08);
-  border-radius:16px;overflow:hidden;
-  display:flex;flex-direction:column;padding:4px 6px;gap:2px;
+  border-radius:32px;overflow:hidden;
+  display:flex;align-items:center;padding:0 12px;
 }
-.ntb-meta-row{display:flex;align-items:center;width:100%;}
 .ntb-meta-input-f{
   flex:1;min-width:0;background:none;border:none;outline:none;
-  font-family:Nunito,sans-serif;font-size:10px;font-weight:700;
-  color:var(--text2);text-align:center;padding:2px 4px;
+  font-family:Nunito,sans-serif;font-size:11px;font-weight:700;
+  color:var(--text2);text-align:center;padding:0 4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .ntb-meta-input-f::placeholder{color:var(--text3);font-style:italic;}
 .ntb-meta-div{width:1px;height:14px;background:rgba(0,0,0,0.08);flex-shrink:0;}
@@ -1568,6 +1568,12 @@ body{
     <button class="fp-save-btn" onclick="sS()">Save</button>
   </div>
   <div class="fp-page">
+    <div style="padding:6px 20px 8px;position:relative;display:inline-block;">
+      <div style="backdrop-filter:blur(40px) saturate(2);-webkit-backdrop-filter:blur(40px) saturate(2);background:rgba(255,255,255,0.55);border:1px solid rgba(0,0,0,0.06);box-shadow:inset 1px 1px 0 rgba(255,255,255,1),inset -1px -1px 0 rgba(255,255,255,0.6),0 4px 20px rgba(0,0,0,0.08);border-radius:32px;padding:8px 16px;display:inline-block;">
+        <span id="sDateLabel" style="font-family:Nunito,sans-serif;font-size:11px;font-weight:700;color:var(--text2);cursor:pointer;white-space:nowrap;"></span>
+      </div>
+      <input id="sDate" type="date" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;" oninput="var d=new Date(this.value+'T00:00:00');document.getElementById('sDateLabel').textContent=d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});">
+    </div>
     <textarea class="nb-title" id="sTitle" placeholder="Sermon title..." rows="1" oninput="autoResize(this)"></textarea>
     <div id="sBody" class="nb-body" contenteditable="true" data-placeholder="Write your notes..."></div>
   </div>
@@ -1613,15 +1619,9 @@ body{
   </div>
   <div class="ntb-bottom-row">
     <div class="ntb-meta-float">
-      <div class="ntb-meta-row">
-        <input class="ntb-meta-input-f" id="sSpeaker" placeholder="Speaker...">
-        <div class="ntb-meta-div"></div>
-        <input class="ntb-meta-input-f" id="sChurch" placeholder="Church...">
-      </div>
-      <div class="ntb-meta-divh"></div>
-      <div class="ntb-meta-row">
-        <input class="ntb-meta-input-f" id="sDate" type="date" style="color:var(--text3);">
-      </div>
+      <input class="ntb-meta-input-f" id="sSpeaker" placeholder="Speaker...">
+      <div class="ntb-meta-div"></div>
+      <input class="ntb-meta-input-f" id="sChurch" placeholder="Church...">
     </div>
     <button class="ntb-more-pill" id="moreSermon" onclick="toggleNtbPopup('ntbPopup_fmtS',this)">···</button>
   </div>
@@ -1928,6 +1928,7 @@ function sw(tab,el){
   el.classList.add('active');
   curTab=tab;
   document.getElementById('fabBtn').onclick=function(){fabActions[tab]();};
+  history.pushState({tab:tab}, '', window.location.href);
   ra();
 }
 
@@ -2025,18 +2026,24 @@ function closeFP(id){
 history.replaceState({base:true}, '', window.location.href);
 
 window.addEventListener('popstate', function(e){
-  // Cek apakah ada fullpage yang sedang open
+  // Tutup fullpage jika ada yang open
   var fps = ['fpNote','fpSermon'];
-  var anyOpen = false;
   for(var i=0;i<fps.length;i++){
     var el = document.getElementById(fps[i]);
     if(el && el.classList.contains('open')){
       closeFP(fps[i]);
-      anyOpen = true;
-      break;
+      history.pushState({base:true}, '', window.location.href);
+      return;
     }
   }
-  // Selalu push base state lagi supaya back berikutnya tidak close app
+  // Kalau back dari tab switch, kembali ke tab sebelumnya
+  if(e.state && e.state.tab){
+    var tabs = document.querySelectorAll('.btab');
+    tabs.forEach(function(t){
+      if(t.dataset.tab===e.state.tab) t.click();
+    });
+  }
+  // Selalu push state lagi supaya back tidak close app
   history.pushState({base:true}, '', window.location.href);
 });
 
@@ -2063,6 +2070,11 @@ function openNoteForm(id){
 
 function openSermonForm(id){
   editSermonId=id;
+function updateSDateLabel(val){
+  var d = new Date((val||td())+'T00:00:00');
+  var lbl = d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('sDateLabel').textContent = lbl;
+}
   if(id){
     var s=D.sermons.find(function(x){return x.id===id;});
     if(s){
@@ -2072,12 +2084,14 @@ function openSermonForm(id){
       document.getElementById('sChurch').value=s.church||'';
       document.getElementById('sBody').innerHTML=s.html||'';
       document.getElementById('sTags').value=(s.tags||[]).join(', ');
+      updateSDateLabel(s.date||td());
     }
   } else {
     ['sTitle','sSpeaker','sChurch'].forEach(function(fid){document.getElementById(fid).value='';});
     document.getElementById('sTags').value=cf_s!=='all'?cf_s:'';
     var _sd=document.getElementById('sDate');if(_sd)_sd.value=td();
     document.getElementById('sBody').innerHTML='';
+    updateSDateLabel(td());
   }
   openFP('fpSermon');
   setTimeout(function(){autoResize(document.getElementById('sTitle'));},50);
