@@ -1739,9 +1739,8 @@ function gTryAutoReconnect() {
   gAuth.email = saved.email;
   gAuth.connected = true;
   gSetStatus('syncing');
-  gGetUserInfo();
+  gGetUserInfo(); // gFetchCalendarEvents dipanggil di dalam gGetUserInfo
   gFindOrCreateFile();
-  gFetchCalendarEvents();
 }
 
 function gConnect() {
@@ -1756,9 +1755,8 @@ function gConnect() {
       if (resp.error) { gSetStatus('error'); return; }
       gAuth.token = resp.access_token;
       gAuth.connected = true;
-      gGetUserInfo();
+      gGetUserInfo(); // gFetchCalendarEvents dipanggil di dalam gGetUserInfo
       gFindOrCreateFile();
-      gFetchCalendarEvents();
     }
   });
   client.requestAccessToken();
@@ -1781,11 +1779,13 @@ function gGetUserInfo() {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r){ return r.json(); }).then(function(info){
     gAuth.email = info.email || '';
-    gSaveToken(gAuth.token, gAuth.email); // simpan token ke localStorage
+    gSaveToken(gAuth.token, gAuth.email);
     gSetStatus('connected');
+    gFetchCalendarEvents(); // panggil setelah token tersimpan dengan flag hasCalendar
   }).catch(function(){
     gSaveToken(gAuth.token, gAuth.email);
     gSetStatus('connected');
+    gFetchCalendarEvents();
   });
 }
 
