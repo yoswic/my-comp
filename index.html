@@ -1324,6 +1324,7 @@ body{
       </div>
       <div class="jcal-grid" id="jCalGrid"></div>
     </div>
+    <div id="gcalDebug" style="margin:0 16px 8px;padding:8px 12px;background:rgba(234,67,53,0.08);border:1px solid rgba(234,67,53,0.2);border-radius:10px;font-size:11px;font-weight:700;color:#7a1a1a;display:none;"></div>
     <div class="gconnect-bar">
       <button class="gconnect-btn" id="gcalBtn" onclick="gAuth.connected ? gDisconnect() : gConnect()">
         <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" fill="currentColor"/><path d="M6.5 17.5l-1.5-1.5L10 11l4 4 5.5-5.5 1.5 1.5L14 18l-4-4-3.5 3.5z" fill="currentColor"/></svg>
@@ -2563,6 +2564,13 @@ document.addEventListener('click',function(e){
 });
 
 // ── GOOGLE CALENDAR (REAL API) ──
+function showDebug(msg) {
+  var el = document.getElementById('gcalDebug');
+  if (!el) return;
+  el.textContent = '🗓 GCal: ' + msg;
+  el.style.display = 'block';
+}
+
 function gFetchCalendarEvents() {
   if (!gAuth.token) return;
   // Ambil events 3 bulan ke depan dan 1 bulan ke belakang
@@ -2576,13 +2584,16 @@ function gFetchCalendarEvents() {
   fetch(url, {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r) {
-    if (r.status === 401) { gClearToken(); gSetStatus('local'); return null; }
-    if (r.status === 403) { console.log('GCal 403: Calendar API belum di-enable atau scope kurang'); return null; }
-    return r.json();
-  }).then(function(data) {
-    if (!data) return;
-    if (data.error) { console.log('GCal error:', data.error.message); return; }
-    if (!data.items) return;
+    var status = r.status;
+    if (r.status === 401) { gClearToken(); gSetStatus('local'); showDebug('401: Token expired'); return null; }
+    if (r.status === 403) { showDebug('403: Calendar API belum di-enable atau scope kurang'); return null; }
+    return r.json().then(function(data){ return {status:status, data:data}; });
+  }).then(function(res) {
+    if (!res) return;
+    var data = res.data;
+    if (data.error) { showDebug('Error '+res.status+': '+data.error.message); return; }
+    if (!data.items || !data.items.length) { showDebug('OK tapi 0 events ditemukan'); return; }
+    showDebug('OK: '+data.items.length+' events!');
     gcalEvents = {};
     data.items.forEach(function(ev) {
       var dateStr = (ev.start.dateTime || ev.start.date || '').split('T')[0];
