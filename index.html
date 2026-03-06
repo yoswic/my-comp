@@ -1695,8 +1695,8 @@ var gAuth = {
 // ── Token persistence helpers ──
 function gSaveToken(token, email) {
   try {
-    var expiry = Date.now() + (55 * 60 * 1000); // 55 menit (token Google expire 1 jam)
-    localStorage.setItem('mc7_gtoken', JSON.stringify({ token: token, expiry: expiry, email: email || '' }));
+    var expiry = Date.now() + (55 * 60 * 1000);
+    localStorage.setItem('mc7_gtoken', JSON.stringify({ token: token, expiry: expiry, email: email || '', hasCalendar: true }));
   } catch(e) {}
 }
 function gLoadToken() {
@@ -1728,6 +1728,12 @@ var gcalEvents = {}; // { 'YYYY-MM-DD': [{title, time, color}, ...] }
 function gTryAutoReconnect() {
   var saved = gLoadToken();
   if (!saved) return;
+  // Cek apakah token lama punya scope calendar
+  if (!saved.hasCalendar) {
+    // Token lama belum punya scope calendar, hapus dan minta login ulang
+    gClearToken();
+    return;
+  }
   gAuth.token = saved.token;
   gAuth.email = saved.email;
   gAuth.connected = true;
@@ -2570,12 +2576,13 @@ function gFetchCalendarEvents() {
   fetch(url, {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r) {
-    console.log('GCal HTTP status:', r.status);
     if (r.status === 401) { gClearToken(); gSetStatus('local'); return null; }
+    if (r.status === 403) { console.log('GCal 403: Calendar API belum di-enable atau scope kurang'); return null; }
     return r.json();
   }).then(function(data) {
-    console.log('GCal response:', JSON.stringify(data));
-    if (!data || !data.items) return;
+    if (!data) return;
+    if (data.error) { console.log('GCal error:', data.error.message); return; }
+    if (!data.items) return;
     gcalEvents = {};
     data.items.forEach(function(ev) {
       var dateStr = (ev.start.dateTime || ev.start.date || '').split('T')[0];
