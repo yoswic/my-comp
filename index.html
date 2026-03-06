@@ -2247,8 +2247,16 @@ function tBackdropClose(e){if(e.target===document.getElementById('mT'))closeTMod
 function openTModal(){openTaskFP(null);}
 
 function jBackdropClose(e){if(e.target===document.getElementById('mJ'))document.getElementById('mJ').classList.remove('open');document.body.style.overflow='';}
-function jCalPrev(){if(jCalMonth===0){jCalMonth=11;jCalYear--;}else{jCalMonth--;}renderCalendar();}
-function jCalNext(){if(jCalMonth===11){jCalMonth=0;jCalYear++;}else{jCalMonth++;}renderCalendar();}
+function jCalCheckFetch() {
+  if (!gAuth.connected) return;
+  var viewDate = new Date(jCalYear, jCalMonth, 1);
+  var needsFetch = !gcalFetchedMin || !gcalFetchedMax
+    || viewDate < gcalFetchedMin
+    || viewDate > gcalFetchedMax;
+  if (needsFetch) gFetchCalendarEvents(jCalYear, jCalMonth);
+}
+function jCalPrev(){if(jCalMonth===0){jCalMonth=11;jCalYear--;}else{jCalMonth--;}renderCalendar();jCalCheckFetch();}
+function jCalNext(){if(jCalMonth===11){jCalMonth=0;jCalYear++;}else{jCalMonth++;}renderCalendar();jCalCheckFetch();}
 
 var jCurrentDate='';
 function openJournal(dateStr){
@@ -2563,63 +2571,82 @@ document.addEventListener('click',function(e){
     document.getElementById('moveTagPop').classList.remove('show');
 });
 
-// ── GOOGLE CALENDAR (REAL API) ──
-function showDebug(msg) {
+var gcalFetchedMin = null, gcalFetchedMax = null;
+
+function gFetchCalendarEvents() {
   var el = document.getElementById('gcalDebug');
   if (!el) return;
   el.textContent = '🗓 GCal: ' + msg;
   el.style.display = 'block';
 }
 
-function gFetchCalendarEvents() {
+function gFetchCalendarEvents(forYear, forMonth) {
   if (!gAuth.token) return;
-  // Ambil events 3 bulan ke depan dan 1 bulan ke belakang
   var now = new Date();
-  var timeMin = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
-  var timeMax = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString();
-  var url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
-    + '?timeMin=' + encodeURIComponent(timeMin)
-    + '&timeMax=' + encodeURIComponent(timeMax)
-    + '&singleEvents=true&orderBy=startTime&maxResults=250';
-  fetch(url, {
+  var baseYear = forYear !== undefined ? forYear : now.getFullYear();
+  var baseMonth = forMonth !== undefined ? forMonth : now.getMonth();
+  var timeMinDate = new Date(baseYear, baseMonth - 1, 1);
+  var timeMaxDate = new Date(baseYear, baseMonth + 3, 0);
+  var timeMin = timeMinDate.toISOString();
+  var timeMax = timeMaxDate.toISOString();
+  gcalFetchedMin = timeMinDate;
+  gcalFetchedMax = timeMaxDate;
+
+  // Step 1: ambil daftar semua kalender dulu
+  fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
     headers: { Authorization: 'Bearer ' + gAuth.token }
-  }).then(function(r) {
-    var status = r.status;
-    if (r.status === 401) { gClearToken(); gSetStatus('local'); showDebug('401: Token expired'); return null; }
-    if (r.status === 403) { showDebug('403: Calendar API belum di-enable atau scope kurang'); return null; }
-    return r.json().then(function(data){ return {status:status, data:data}; });
-  }).then(function(res) {
-    if (!res) return;
-    var data = res.data;
-    if (data.error) { showDebug('Error '+res.status+': '+data.error.message); return; }
-    if (!data.items || !data.items.length) { showDebug('OK tapi 0 events ditemukan'); return; }
-    showDebug('OK: '+data.items.length+' events!');
+  }).then(function(r){ return r.json(); }).then(function(listData){
+    if (!listData.items || !listData.items.length) { showDebug('Tidak ada kalender ditemukan'); return; }
+    var calendars = listData.items;
+    showDebug('Fetching '+calendars.length+' kalender...');
     gcalEvents = {};
-    data.items.forEach(function(ev) {
-      var dateStr = (ev.start.dateTime || ev.start.date || '').split('T')[0];
-      if (!dateStr) return;
-      if (!gcalEvents[dateStr]) gcalEvents[dateStr] = [];
-      var timeStr = 'All day';
-      if (ev.start.dateTime) {
-        var d = new Date(ev.start.dateTime);
-        var h = d.getHours().toString().padStart(2,'0');
-        var m = d.getMinutes().toString().padStart(2,'0');
-        timeStr = h + ':' + m;
-      }
-      // Warna berdasarkan colorId Google Calendar
-      var colors = {
-        '1':'#7986cb','2':'#33b679','3':'#8e24aa','4':'#e67c73',
-        '5':'#f6c026','6':'#f5511d','7':'#039be5','8':'#616161',
-        '9':'#3f51b5','10':'#0b8043','11':'#d60000'
-      };
-      gcalEvents[dateStr].push({
-        title: ev.summary || '(no title)',
-        time: timeStr,
-        color: colors[ev.colorId] || '#4285f4'
-      });
+    var done = 0;
+    calendars.forEach(function(cal){
+      var url = 'https://www.googleapis.com/calendar/v3/calendars/'
+        + encodeURIComponent(cal.id) + '/events'
+        + '?timeMin=' + encodeURIComponent(timeMin)
+        + '&timeMax=' + encodeURIComponent(timeMax)
+        + '&singleEvents=true&orderBy=startTime&maxResults=250';
+      fetch(url, {
+        headers: { Authorization: 'Bearer ' + gAuth.token }
+      }).then(function(r){
+        if (r.status === 401) { gClearToken(); gSetStatus('local'); return null; }
+        if (!r.ok) return null;
+        return r.json();
+      }).then(function(data){
+        done++;
+        if (data && data.items) {
+          data.items.forEach(function(ev){
+            var dateStr;
+            if (ev.start.date) {
+              dateStr = ev.start.date;
+            } else if (ev.start.dateTime) {
+              var d = new Date(ev.start.dateTime);
+              dateStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+            }
+            if (!dateStr) return;
+            if (!gcalEvents[dateStr]) gcalEvents[dateStr] = [];
+            var timeStr = 'All day';
+            if (ev.start.dateTime) {
+              var d2 = new Date(ev.start.dateTime);
+              timeStr = String(d2.getHours()).padStart(2,'0')+':'+String(d2.getMinutes()).padStart(2,'0');
+            }
+            var colors = {'1':'#7986cb','2':'#33b679','3':'#8e24aa','4':'#e67c73','5':'#f6c026','6':'#f5511d','7':'#039be5','8':'#616161','9':'#3f51b5','10':'#0b8043','11':'#d60000'};
+            gcalEvents[dateStr].push({
+              title: ev.summary || '(no title)',
+              time: timeStr,
+              color: cal.backgroundColor || colors[ev.colorId] || '#4285f4'
+            });
+          });
+        }
+        if (done === calendars.length) {
+          var total = Object.values(gcalEvents).reduce(function(a,b){return a+b.length;},0);
+          showDebug('OK: '+total+' events dari '+calendars.length+' kalender!');
+          renderCalendar();
+        }
+      }).catch(function(){ done++; if(done===calendars.length){renderCalendar();} });
     });
-    renderCalendar();
-  }).catch(function(e) { console.log('GCal error', e); });
+  }).catch(function(e){ showDebug('Error fetch calendarList: '+e); });
 }
 
 function getGcalEventsForDate(dateStr) {
