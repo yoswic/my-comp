@@ -90,6 +90,8 @@ body{
   -webkit-backdrop-filter:blur(40px) saturate(2);
   border-radius:22px;
   width:100%;max-width:360px;
+  max-height:82vh;
+  display:flex;flex-direction:column;
   box-shadow:inset 1px 1px 0 rgba(255,255,255,1),inset -1px -1px 0 rgba(255,255,255,0.5),0 20px 60px rgba(0,0,0,0.18);
   border:1px solid rgba(0,0,0,0.08);
   transform:scale(0.94);transition:transform .22s cubic-bezier(.32,1.1,.6,1);
@@ -115,7 +117,7 @@ body{
   display:flex;align-items:center;justify-content:center;
   font-size:14px;color:var(--text2);cursor:pointer;
 }
-.jmodal-body{padding:0;display:flex;flex-direction:column;gap:0;}
+.jmodal-body{padding:0;display:flex;flex-direction:column;gap:0;overflow-y:auto;flex:1;}
 .jmodal-section{display:flex;flex-direction:column;}
 .jmodal-label{
   display:inline-block;
@@ -1324,17 +1326,17 @@ body{
       </div>
       <div class="jcal-grid" id="jCalGrid"></div>
     </div>
-    <div id="gcalDebug" style="margin:0 16px 8px;padding:8px 12px;background:rgba(234,67,53,0.08);border:1px solid rgba(234,67,53,0.2);border-radius:10px;font-size:11px;font-weight:700;color:#7a1a1a;display:none;"></div>
+    <div id="gcalDebug" style="display:none;"></div>
     <div class="gconnect-bar">
       <button class="gconnect-btn" id="gcalBtn" onclick="gAuth.connected ? gDisconnect() : gConnect()">
         <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" fill="currentColor"/><path d="M6.5 17.5l-1.5-1.5L10 11l4 4 5.5-5.5 1.5 1.5L14 18l-4-4-3.5 3.5z" fill="currentColor"/></svg>
         <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z" fill="none"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="currentColor" stroke-width="1.5"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span id="gcalLabel">Google Drive Sync</span>
       </button>
-      <button class="gconnect-btn" id="gcalMockGcalBtn" onclick="toggleGcal()" style="display:none;" id="mockGcalBtn">
+      <div class="gconnect-btn connected" id="gcalCalBtn" style="display:none;cursor:default;">
         <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <span id="gcalLabel2">Google Calendar</span>
-      </button>
+        <span id="gcalCalLabel">Calendar Connected</span>
+      </div>
     </div>
   </div>
   <!-- TASKS -->
@@ -1763,9 +1765,11 @@ function gDisconnect() {
   if (gAuth.token) {
     google.accounts.oauth2.revoke(gAuth.token);
   }
-  gClearToken(); // hapus token dari localStorage
+  gClearToken();
   gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null };
   gcalEvents = {};
+  var calBtn = document.getElementById('gcalCalBtn');
+  if (calBtn) calBtn.style.display = 'none';
   renderCalendar();
   gSetStatus('local');
   // Keep local data intact
@@ -2569,10 +2573,7 @@ document.addEventListener('click',function(e){
 var gcalFetchedMin = null, gcalFetchedMax = null;
 
 function showDebug(msg) {
-  var el = document.getElementById('gcalDebug');
-  if (!el) return;
-  el.textContent = '🗓 GCal: ' + msg;
-  el.style.display = 'block';
+  console.log('GCal:', msg);
 }
 
 function gFetchCalendarEvents(forYear, forMonth) {
@@ -2637,6 +2638,10 @@ function gFetchCalendarEvents(forYear, forMonth) {
         if (done === calendars.length) {
           var total = Object.values(gcalEvents).reduce(function(a,b){return a+b.length;},0);
           showDebug('OK: '+total+' events dari '+calendars.length+' kalender!');
+          var calBtn = document.getElementById('gcalCalBtn');
+          var calLbl = document.getElementById('gcalCalLabel');
+          if (calBtn) { calBtn.style.display='flex'; }
+          if (calLbl) { calLbl.textContent = 'Calendar Connected'; }
           renderCalendar();
         }
       }).catch(function(){ done++; if(done===calendars.length){renderCalendar();} });
