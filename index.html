@@ -1708,6 +1708,8 @@ function gClearToken() {
   try { localStorage.removeItem('mc7_gtoken'); } catch(e) {}
 }
 
+var gcalEvents = {}; // { 'YYYY-MM-DD': [{title, time, color}, ...] }
+
 // ── Load Google Identity Services ──
 (function(){
   var s = document.createElement('script');
@@ -2503,8 +2505,6 @@ document.addEventListener('click',function(e){
 });
 
 // ── GOOGLE CALENDAR (REAL API) ──
-var gcalEvents = {}; // { 'YYYY-MM-DD': [{title, time, color}, ...] }
-
 function gFetchCalendarEvents() {
   if (!gAuth.token) return;
   // Ambil events 3 bulan ke depan dan 1 bulan ke belakang
