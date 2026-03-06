@@ -1735,6 +1735,7 @@ function gTryAutoReconnect() {
   gSetStatus('connected');
   gFindOrCreateFile();
   gFetchCalendarEvents();
+  showDebug('Auto-reconnect: fetching...');
 }
 
 function gConnect() {
@@ -1749,6 +1750,7 @@ function gConnect() {
       if (resp.error) { gSetStatus('error'); return; }
       gAuth.token = resp.access_token;
       gAuth.connected = true;
+      showDebug('gConnect: token dapat, fetching...');
       gGetUserInfo();
       gFindOrCreateFile();
       gFetchCalendarEvents();
