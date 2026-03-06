@@ -19,7 +19,7 @@
 input,textarea,[contenteditable]{user-select:text;-webkit-user-select:text;}
 html{background:#fff;min-height:100%;-webkit-font-smoothing:antialiased;text-size-adjust:100%;-webkit-text-size-adjust:100%;}
 body{
-  font-family:Nunito,sans-serif;min-height:100vh;
+  font-family:Nunito,sans-serif;
   display:flex;justify-content:center;
   background:transparent;
   overflow-x:hidden;
@@ -50,7 +50,7 @@ body{
 
 /* ── CONTENT ── */
 .content{position:relative;z-index:1;padding-bottom:130px;flex:1;}
-.section{display:none;background:transparent;min-height:100dvh;}.section.active{display:block;}
+.section{display:none;background:transparent;}.section.active{display:block;}
 .sec-bar{display:none;}
 
 /* ── BOTTOM AREA ── */
@@ -1209,7 +1209,7 @@ body{
 }
 .ntb-meta-input-f{
   flex:1;min-width:0;background:none;border:none;outline:none;
-  font-family:Nunito,sans-serif;font-size:11px;font-weight:700;
+  font-family:Nunito,sans-serif;font-size:9px;font-weight:700;
   color:var(--text2);text-align:center;padding:0 4px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
@@ -1321,7 +1321,7 @@ body{
 </div>
 <div class="content">
   <!-- JOURNAL -->
-  <div class="section active" id="sec-journal" style="min-height:100vh;">
+  <div class="section active" id="sec-journal">
     <div class="jcal-wrap">
       <div class="jcal-header">
         <button class="jcal-nav" onclick="jCalPrev()">&#8592;</button>
@@ -1347,7 +1347,7 @@ body{
     </div>
   </div>
   <!-- TASKS -->
-  <div class="section" id="sec-tasks" style="min-height:100vh;">
+  <div class="section" id="sec-tasks">
     <div style="position:fixed;top:72px;left:0;right:0;z-index:99;padding:10px 32px;">
       <div id="tasksFilterBar" style="
         display:flex;
@@ -1372,7 +1372,7 @@ body{
     <div class="task-list" id="tList"></div>
   </div>
   <!-- NOTES -->
-  <div class="section" id="sec-notes" style="min-height:100vh;">
+  <div class="section" id="sec-notes">
     <div class="tag-float-row">
       <div class="tag-float-bar">
         <div class="tag-float-inner" id="notesTagBar">
@@ -1388,7 +1388,7 @@ body{
     <div class="notes-wrap"><div id="nList" class="notes-grid"></div></div>
   </div>
   <!-- SERMON -->
-  <div class="section" id="sec-sermon" style="min-height:100vh;">
+  <div class="section" id="sec-sermon">
     <div class="tag-float-row">
       <div class="tag-float-bar">
         <div class="tag-float-inner" id="sermonTagBar">
