@@ -1703,34 +1703,20 @@ var EMOJI={bahagia:':-)',tenang:'-_-',biasa:'...',sedih:':-(',kesal:'>.<'};
 var GDRIVE_CLIENT_ID = '327802388523-7s84h5ckpob6murf08vnjhl94lllkqvs.apps.googleusercontent.com';
 var GDRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/calendar.readonly';
 var GDRIVE_FILE_NAME = 'mycompanion-data.json';
+var GDRIVE_SK = 'mc7_gdrive';
 
-var gAuth = {
-  token: null,
-  fileId: null,
-  connected: false,
-  syncing: false,
-  email: null,
-};
+var gAuth = { token: null, fileId: null, connected: false, syncing: false, email: null };
+var _tokenRefreshTimer = null;
+var _saveDriveTimer = null;
 
-// ── Token persistence helpers ──
-function gSaveToken(token, email) {
-  try {
-    var expiry = Date.now() + (55 * 60 * 1000);
-    localStorage.setItem('mc7_gtoken', JSON.stringify({ token: token, expiry: expiry, email: email || '', hasCalendar: true }));
-  } catch(e) {}
+// ── Simpan metadata (email + fileId), bukan token ──
+function gSaveMeta(email, fileId) {
+  try { localStorage.setItem(GDRIVE_SK, JSON.stringify({ email: email||'', fileId: fileId||'' })); } catch(e) {}
 }
-function gLoadToken() {
-  try {
-    var raw = localStorage.getItem('mc7_gtoken');
-    if (!raw) return null;
-    var data = JSON.parse(raw);
-    if (Date.now() > data.expiry) { localStorage.removeItem('mc7_gtoken'); return null; }
-    return data;
-  } catch(e) { return null; }
+function gLoadMeta() {
+  try { var r = localStorage.getItem(GDRIVE_SK); return r ? JSON.parse(r) : null; } catch(e) { return null; }
 }
-function gClearToken() {
-  try { localStorage.removeItem('mc7_gtoken'); } catch(e) {}
-}
+function gClearMeta() { try { localStorage.removeItem(GDRIVE_SK); } catch(e) {} }
 
 var gcalEvents = {}; // { 'YYYY-MM-DD': [{title, time, color}, ...] }
 
@@ -1744,62 +1730,55 @@ var gcalEvents = {}; // { 'YYYY-MM-DD': [{title, time, color}, ...] }
   document.head.appendChild(s);
 })();
 
-// ── Auto-reconnect saat refresh jika token masih valid ──
+// ── Auto-reconnect setiap load ──
 function gTryAutoReconnect() {
-  var saved = gLoadToken();
-  if (!saved) {
-    var prev = localStorage.getItem('mc7_gprev_email');
-    if (prev) gSilentReauth(prev);
-    return;
-  }
-  gAuth.token = saved.token;
-  gAuth.email = saved.email;
-  gAuth.connected = true;
-  gSetStatus('connected');
-  // Verify token still valid
-  fetch('https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' + saved.token)
-    .then(function(r){ return r.json(); })
-    .then(function(info){
-      if (info.error || (info.expires_in && parseInt(info.expires_in) < 60)) {
-        gSilentReauth(saved.email);
-      } else {
-        gFindOrCreateFile();
-        gFetchCalendarEvents();
-        showDebug('Auto-reconnect: fetching...');
-      }
-    })
-    .catch(function(){
-      gFindOrCreateFile();
-      gFetchCalendarEvents();
-    });
+  var meta = gLoadMeta();
+  if (!meta || !meta.email) { gSetStatus('local'); return; }
+  gAuth.email = meta.email;
+  gAuth.fileId = meta.fileId || null;
+  gSetStatus('syncing');
+  gSilentReauth(meta.email, meta.fileId);
 }
 
-function gSilentReauth(hint) {
-  if (!window.google || !window.google.accounts) return;
+function gSilentReauth(hint, knownFileId) {
+  if (!window.google || !window.google.accounts) {
+    setTimeout(function(){ gSilentReauth(hint, knownFileId); }, 800);
+    return;
+  }
   var client = google.accounts.oauth2.initTokenClient({
     client_id: GDRIVE_CLIENT_ID,
     scope: GDRIVE_SCOPES,
     hint: hint || '',
     prompt: '',
     callback: function(resp) {
-      if (resp.error || !resp.access_token) {
-        gSetStatus('local');
-        return;
-      }
+      if (resp.error || !resp.access_token) { gSetStatus('local'); return; }
       gAuth.token = resp.access_token;
       gAuth.connected = true;
       gAuth.email = hint || gAuth.email || '';
-      gSaveToken(resp.access_token, gAuth.email);
-      gSetStatus('connected');
-      gFindOrCreateFile();
+      if (knownFileId) {
+        gAuth.fileId = knownFileId;
+        gSaveMeta(gAuth.email, gAuth.fileId);
+        gLoadFromDrive();
+      } else {
+        gFindOrCreateFile();
+      }
       gFetchCalendarEvents();
-      showDebug('Silent reauth: berhasil');
+      gScheduleTokenRefresh();
     }
   });
   client.requestAccessToken();
 }
 
+// ── Auto-refresh token setiap 50 menit ──
+function gScheduleTokenRefresh() {
+  clearTimeout(_tokenRefreshTimer);
+  _tokenRefreshTimer = setTimeout(function() {
+    if (gAuth.email) gSilentReauth(gAuth.email, gAuth.fileId);
+  }, 50 * 60 * 1000);
+}
+
 function gConnect() {
+  if (gAuth.connected) { gManualSync(); return; }
   if (!window.google || !window.google.accounts) {
     alert('Google SDK belum load. Coba lagi sebentar.');
     return;
@@ -1811,28 +1790,31 @@ function gConnect() {
       if (resp.error) { gSetStatus('error'); return; }
       gAuth.token = resp.access_token;
       gAuth.connected = true;
-      showDebug('gConnect: token dapat, fetching...');
       gGetUserInfo();
       gFindOrCreateFile();
       gFetchCalendarEvents();
+      gScheduleTokenRefresh();
     }
   });
   client.requestAccessToken();
 }
 
+function gManualSync() {
+  if (!gAuth.connected) { gConnect(); return; }
+  gSaveToDrive(true);
+}
+
 function gDisconnect() {
-  if (gAuth.token) {
-    google.accounts.oauth2.revoke(gAuth.token);
-  }
-  gClearToken();
-  try { localStorage.removeItem('mc7_gprev_email'); } catch(e) {}
+  clearTimeout(_tokenRefreshTimer);
+  clearTimeout(_saveDriveTimer);
+  try { if (gAuth.token) google.accounts.oauth2.revoke(gAuth.token); } catch(e) {}
+  gClearMeta();
   gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null };
   gcalEvents = {};
   var calBtn = document.getElementById('gcalCalBtn');
   if (calBtn) calBtn.style.display = 'none';
   renderCalendar();
   gSetStatus('local');
-  // Keep local data intact
 }
 
 function gGetUserInfo() {
@@ -1840,23 +1822,21 @@ function gGetUserInfo() {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r){ return r.json(); }).then(function(info){
     gAuth.email = info.email || '';
-    gSaveToken(gAuth.token, gAuth.email);
-    try { localStorage.setItem('mc7_gprev_email', gAuth.email); } catch(e) {}
+    gSaveMeta(gAuth.email, gAuth.fileId || '');
     gSetStatus('connected');
   }).catch(function(){
-    gSaveToken(gAuth.token, gAuth.email);
     gSetStatus('connected');
   });
 }
 
 function gFindOrCreateFile() {
   gSetStatus('syncing');
-  // Search in appDataFolder
   fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='" + GDRIVE_FILE_NAME + "'&fields=files(id,name)", {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r){ return r.json(); }).then(function(data){
     if (data.files && data.files.length > 0) {
       gAuth.fileId = data.files[0].id;
+      gSaveMeta(gAuth.email, gAuth.fileId);
       gLoadFromDrive();
     } else {
       gCreateFile();
@@ -1879,6 +1859,7 @@ function gCreateFile() {
     body: payload
   }).then(function(r){ return r.json(); }).then(function(data){
     gAuth.fileId = data.id;
+    gSaveMeta(gAuth.email, gAuth.fileId);
     gSetStatus('connected');
   }).catch(function(){ gSetStatus('error'); });
 }
@@ -1888,37 +1869,52 @@ function gLoadFromDrive() {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r){ return r.json(); }).then(function(data){
     if (data && data.journals !== undefined) {
-      D = data;
-      // Merge local if drive is empty
-      if (!D.journals) D.journals = [];
-      if (!D.tasks) D.tasks = [];
-      if (!D.notes) D.notes = [];
-      if (!D.sermons) D.sermons = [];
-      if (!D.tagBookmarkColors) D.tagBookmarkColors = {};
-      ra();
+      var driveTs = data.lastModified || 0;
+      var localTs = D.lastModified || 0;
+      if (driveTs >= localTs) {
+        // Drive lebih baru atau sama → pakai Drive
+        D = data;
+        if (!D.journals) D.journals = [];
+        if (!D.tasks) D.tasks = [];
+        if (!D.notes) D.notes = [];
+        if (!D.sermons) D.sermons = [];
+        if (!D.tagBookmarkColors) D.tagBookmarkColors = {};
+        try { localStorage.setItem('mc7', JSON.stringify(D)); } catch(e) {}
+        ra();
+        gSetStatus('connected');
+      } else {
+        // Lokal lebih baru → push ke Drive, jangan overwrite
+        gSetStatus('connected');
+        gSaveToDrive(true);
+      }
+    } else {
+      gSetStatus('connected');
     }
-    gSetStatus('connected');
   }).catch(function(){ gSetStatus('error'); });
 }
 
-function gSaveToDrive() {
+function gSaveToDrive(immediate) {
   if (!gAuth.connected || !gAuth.fileId || gAuth.syncing) return;
-  gAuth.syncing = true;
-  gSetStatus('syncing');
-  fetch('https://www.googleapis.com/upload/drive/v3/files/' + gAuth.fileId + '?uploadType=media', {
-    method: 'PATCH',
-    headers: {
-      Authorization: 'Bearer ' + gAuth.token,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(D)
-  }).then(function(){
-    gAuth.syncing = false;
-    gSetStatus('connected');
-  }).catch(function(){
-    gAuth.syncing = false;
-    gSetStatus('error');
-  });
+  clearTimeout(_saveDriveTimer);
+  _saveDriveTimer = setTimeout(function(){
+    gAuth.syncing = true;
+    gSetStatus('syncing');
+    fetch('https://www.googleapis.com/upload/drive/v3/files/' + gAuth.fileId + '?uploadType=media', {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + gAuth.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({}, D, { lastModified: D.lastModified || Date.now() }))
+    }).then(function(){
+      gAuth.syncing = false;
+      gSetStatus('connected');
+    }).catch(function(){
+      gAuth.syncing = false;
+      if (gAuth.email) {
+        gSilentReauth(gAuth.email, gAuth.fileId);
+      } else {
+        gSetStatus('error');
+      }
+    });
+  }, immediate ? 0 : 1500);
 }
 
 function gSetStatus(status) {
@@ -1952,6 +1948,7 @@ function load(){
   try{var d=localStorage.getItem('mc7');if(d)D=JSON.parse(d);}catch(e){}
 }
 function save(){
+  D.lastModified = Date.now();
   try{localStorage.setItem('mc7',JSON.stringify(D));}catch(e){}
   gSaveToDrive();
 }
@@ -2703,7 +2700,7 @@ function gFetchCalendarEvents(forYear, forMonth) {
       fetch(url, {
         headers: { Authorization: 'Bearer ' + gAuth.token }
       }).then(function(r){
-        if (r.status === 401) { gClearToken(); gSetStatus('local'); return null; }
+        if (r.status === 401) { gClearMeta(); gSetStatus('local'); return null; }
         if (!r.ok) return null;
         return r.json();
       }).then(function(data){
@@ -3052,15 +3049,9 @@ if('serviceWorker' in navigator){
 // Fallback: coba auto-reconnect setelah semua script load
 window.addEventListener('load', function() {
   setTimeout(function() {
-    var saved = gLoadToken();
-    if (saved && !gAuth.connected) {
-      gAuth.token = saved.token;
-      gAuth.email = saved.email;
-      gAuth.connected = true;
-      gSetStatus('connected');
-      gFindOrCreateFile();
-      gFetchCalendarEvents();
-      showDebug('load fallback: fetching...');
+    var meta = gLoadMeta();
+    if (meta && meta.email && !gAuth.connected) {
+      gSilentReauth(meta.email, meta.fileId);
     } else if (gAuth.connected) {
       gFetchCalendarEvents();
       showDebug('already connected: fetching...');
