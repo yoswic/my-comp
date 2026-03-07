@@ -1340,15 +1340,27 @@ body{
       <div class="jcal-grid" id="jCalGrid"></div>
     </div>
     <div id="gcalDebug" style="display:none;"></div>
-    <div class="gconnect-bar">
-      <button class="gconnect-btn" id="gcalBtn" onclick="gAuth.connected ? gDisconnect() : gConnect()">
-        <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" fill="currentColor"/><path d="M6.5 17.5l-1.5-1.5L10 11l4 4 5.5-5.5 1.5 1.5L14 18l-4-4-3.5 3.5z" fill="currentColor"/></svg>
-        <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z" fill="none"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="currentColor" stroke-width="1.5"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span id="gcalLabel">Google Drive Sync</span>
-      </button>
-      <div class="gconnect-btn connected" id="gcalCalBtn" style="display:none;cursor:default;">
-        <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <span id="gcalCalLabel">Calendar Connected</span>
+    <div class="gconnect-bar" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="gconnect-btn" id="gcalBtn" onclick="gAuth.connected ? gDisconnect() : gConnect()">
+          <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" fill="currentColor"/><path d="M6.5 17.5l-1.5-1.5L10 11l4 4 5.5-5.5 1.5 1.5L14 18l-4-4-3.5 3.5z" fill="currentColor"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z" fill="none"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="currentColor" stroke-width="1.5"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="gcalLabel">Google Drive Sync</span>
+        </button>
+        <div class="gconnect-btn connected" id="gcalCalBtn" style="display:none;cursor:default;">
+          <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span id="gcalCalLabel">Calendar Connected</span>
+        </div>
+      </div>
+      <div style="display:none;gap:6px;" id="driveActionBtns">
+        <button class="gconnect-btn" onclick="gPullFromDrive()">
+          <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M12 3v13M7 11l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>Pull</span>
+        </button>
+        <button class="gconnect-btn" onclick="gSaveToDrive(true)">
+          <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M12 21V8M7 13l5-5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 3h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>Push</span>
+        </button>
       </div>
     </div>
   </div>
@@ -1804,6 +1816,27 @@ function gManualSync() {
   gSaveToDrive(true);
 }
 
+function gPullFromDrive() {
+  if (!gAuth.connected || !gAuth.fileId) return;
+  gSetStatus('syncing');
+  fetch('https://www.googleapis.com/drive/v3/files/' + gAuth.fileId + '?alt=media', {
+    headers: { Authorization: 'Bearer ' + gAuth.token }
+  }).then(function(r){ return r.json(); }).then(function(data){
+    if (data && data.journals !== undefined) {
+      D = data;
+      if (!D.journals) D.journals = [];
+      if (!D.tasks) D.tasks = [];
+      if (!D.notes) D.notes = [];
+      if (!D.sermons) D.sermons = [];
+      if (!D.tagBookmarkColors) D.tagBookmarkColors = {};
+      try { localStorage.setItem('mc7', JSON.stringify(D)); } catch(e) {}
+      ra();
+      showToast('✓ Pulled from Drive!');
+    }
+    gSetStatus('connected');
+  }).catch(function(){ gSetStatus('error'); });
+}
+
 function gDisconnect() {
   clearTimeout(_tokenRefreshTimer);
   clearTimeout(_saveDriveTimer);
@@ -1924,6 +1957,8 @@ function gSetStatus(status) {
   if (status === 'local') {
     pill.textContent = 'LOCAL'; pill.style.cssText = '';
     if (btn) { btn.classList.remove('connected'); lbl.textContent = 'Google Drive Sync'; }
+    var pullBtn = document.getElementById('driveActionBtns');
+    if (pullBtn) pullBtn.style.display = 'none';
   } else if (status === 'syncing') {
     pill.textContent = 'SYNCING...';
     pill.style.background = 'rgba(251,188,5,0.12)';
@@ -1935,6 +1970,8 @@ function gSetStatus(status) {
     pill.style.borderColor = 'rgba(52,199,123,0.3)';
     pill.style.color = '#1a6a40';
     if (btn) { btn.classList.add('connected'); lbl.textContent = 'Drive Connected'; }
+    var pullBtn = document.getElementById('driveActionBtns');
+    if (pullBtn) pullBtn.style.display = 'flex';
   } else if (status === 'error') {
     pill.textContent = 'SYNC ERROR';
     pill.style.background = 'rgba(234,67,53,0.1)';
