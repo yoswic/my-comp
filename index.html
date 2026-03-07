@@ -1747,14 +1747,56 @@ var gcalEvents = {}; // { 'YYYY-MM-DD': [{title, time, color}, ...] }
 // ── Auto-reconnect saat refresh jika token masih valid ──
 function gTryAutoReconnect() {
   var saved = gLoadToken();
-  if (!saved) return;
+  if (!saved) {
+    var prev = localStorage.getItem('mc7_gprev_email');
+    if (prev) gSilentReauth(prev);
+    return;
+  }
   gAuth.token = saved.token;
   gAuth.email = saved.email;
   gAuth.connected = true;
   gSetStatus('connected');
-  gFindOrCreateFile();
-  gFetchCalendarEvents();
-  showDebug('Auto-reconnect: fetching...');
+  // Verify token still valid
+  fetch('https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' + saved.token)
+    .then(function(r){ return r.json(); })
+    .then(function(info){
+      if (info.error || (info.expires_in && parseInt(info.expires_in) < 60)) {
+        gSilentReauth(saved.email);
+      } else {
+        gFindOrCreateFile();
+        gFetchCalendarEvents();
+        showDebug('Auto-reconnect: fetching...');
+      }
+    })
+    .catch(function(){
+      gFindOrCreateFile();
+      gFetchCalendarEvents();
+    });
+}
+
+function gSilentReauth(hint) {
+  if (!window.google || !window.google.accounts) return;
+  var client = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPES,
+    hint: hint || '',
+    prompt: '',
+    callback: function(resp) {
+      if (resp.error || !resp.access_token) {
+        gSetStatus('local');
+        return;
+      }
+      gAuth.token = resp.access_token;
+      gAuth.connected = true;
+      gAuth.email = hint || gAuth.email || '';
+      gSaveToken(resp.access_token, gAuth.email);
+      gSetStatus('connected');
+      gFindOrCreateFile();
+      gFetchCalendarEvents();
+      showDebug('Silent reauth: berhasil');
+    }
+  });
+  client.requestAccessToken();
 }
 
 function gConnect() {
@@ -1783,6 +1825,7 @@ function gDisconnect() {
     google.accounts.oauth2.revoke(gAuth.token);
   }
   gClearToken();
+  try { localStorage.removeItem('mc7_gprev_email'); } catch(e) {}
   gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null };
   gcalEvents = {};
   var calBtn = document.getElementById('gcalCalBtn');
@@ -1798,6 +1841,7 @@ function gGetUserInfo() {
   }).then(function(r){ return r.json(); }).then(function(info){
     gAuth.email = info.email || '';
     gSaveToken(gAuth.token, gAuth.email);
+    try { localStorage.setItem('mc7_gprev_email', gAuth.email); } catch(e) {}
     gSetStatus('connected');
   }).catch(function(){
     gSaveToken(gAuth.token, gAuth.email);
