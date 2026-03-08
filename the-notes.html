@@ -1723,27 +1723,57 @@ var _tokenRefreshTimer = null;
 var _saveDriveTimer = null;
 var gcalEvents = {};
 
-// ── Simpan uid + fileId di localStorage (aman — bukan token) ──
+// ── IndexedDB — persistent meta storage (survives app kill) ──
+var _idb = null;
+function _openIDB() {
+  if (_idb) return Promise.resolve(_idb);
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open('gdrive_meta_db', 1);
+    req.onupgradeneeded = function(e) { e.target.result.createObjectStore('meta', { keyPath: 'k' }); };
+    req.onsuccess = function(e) { _idb = e.target.result; resolve(_idb); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
 function gSaveMeta(email, fileId, uid) {
-  try { localStorage.setItem(GDRIVE_SK, JSON.stringify({ email: email||'', fileId: fileId||'', uid: uid||'' })); } catch(e) {}
+  _openIDB().then(function(db) {
+    var tx = db.transaction('meta', 'readwrite');
+    tx.objectStore('meta').put({ k: GDRIVE_SK, email: email||'', fileId: fileId||'', uid: uid||'' });
+  }).catch(function() {
+    try { localStorage.setItem(GDRIVE_SK, JSON.stringify({ email: email||'', fileId: fileId||'', uid: uid||'' })); } catch(e) {}
+  });
 }
 function gLoadMeta() {
-  try { var r = localStorage.getItem(GDRIVE_SK); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  // Returns a Promise — caller must use .then()
+  return _openIDB().then(function(db) {
+    return new Promise(function(resolve) {
+      var req = db.transaction('meta','readonly').objectStore('meta').get(GDRIVE_SK);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { resolve(null); };
+    });
+  }).catch(function() {
+    try { var r = localStorage.getItem(GDRIVE_SK); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  });
 }
-function gClearMeta() { try { localStorage.removeItem(GDRIVE_SK); } catch(e) {} }
+function gClearMeta() {
+  _openIDB().then(function(db) {
+    db.transaction('meta','readwrite').objectStore('meta').delete(GDRIVE_SK);
+  }).catch(function() {});
+  try { localStorage.removeItem(GDRIVE_SK); } catch(e) {}
+}
 
 // ── Auto-reconnect on load — just fetch fresh token from Worker ──
 window.addEventListener('load', function() {
-  var meta = gLoadMeta();
-  if (meta && meta.uid) {
-    gAuth.uid = meta.uid;
-    gAuth.email = meta.email || '';
-    gAuth.fileId = meta.fileId || null;
-    gSetStatus('syncing');
-    gRefreshToken();
-  } else {
-    gSetStatus('local');
-  }
+  gLoadMeta().then(function(meta) {
+    if (meta && meta.uid) {
+      gAuth.uid = meta.uid;
+      gAuth.email = meta.email || '';
+      gAuth.fileId = meta.fileId || null;
+      gSetStatus('syncing');
+      gRefreshToken();
+    } else {
+      gSetStatus('local');
+    }
+  });
 });
 
 // ── Get fresh token from Worker (auto-refreshes via refresh_token) ──
@@ -3194,7 +3224,7 @@ if('serviceWorker' in navigator){
 // Fallback: coba auto-reconnect setelah semua script load
 window.addEventListener('load', function() {
   setTimeout(function() {
-    var meta = gLoadMeta();
+    gLoadMeta().then(function(meta) {
     if (meta && meta.email && !gAuth.connected) {
       gSilentReauth(meta.email, meta.fileId);
     } else if (gAuth.connected) {
@@ -3203,6 +3233,7 @@ window.addEventListener('load', function() {
     } else {
       showDebug('tidak ada token tersimpan');
     }
+    });
   }, 1500);
 });
 </script>
