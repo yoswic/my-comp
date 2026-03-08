@@ -1932,7 +1932,7 @@ function gGetUserInfo() {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r){ return r.json(); }).then(function(info){
     gAuth.email = info.email || '';
-    gSaveMeta(gAuth.email, gAuth.fileId || '');
+    gSaveMeta(gAuth.email, gAuth.fileId || '', gAuth.uid);
     gSetStatus('connected');
   }).catch(function(){
     gSetStatus('connected');
@@ -1946,7 +1946,7 @@ function gFindOrCreateFile() {
   }).then(function(r){ return r.json(); }).then(function(data){
     if (data.files && data.files.length > 0) {
       gAuth.fileId = data.files[0].id;
-      gSaveMeta(gAuth.email, gAuth.fileId);
+      gSaveMeta(gAuth.email, gAuth.fileId, gAuth.uid);
       gLoadFromDrive();
     } else {
       gCreateFile();
@@ -1969,7 +1969,7 @@ function gCreateFile() {
     body: payload
   }).then(function(r){ return r.json(); }).then(function(data){
     gAuth.fileId = data.id;
-    gSaveMeta(gAuth.email, gAuth.fileId);
+    gSaveMeta(gAuth.email, gAuth.fileId, gAuth.uid);
     gSetStatus('connected');
   }).catch(function(){ gSetStatus('error'); });
 }
