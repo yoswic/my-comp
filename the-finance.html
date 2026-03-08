@@ -2311,8 +2311,13 @@ function renderSavLedger() {
 // ═══════════════════════════════════════════════════════
 // PERSIST & SYNC
 // ═══════════════════════════════════════════════════════
+// Flag: only true when USER actually changed data on THIS device.
+// Prevents startup/reconnect from pushing stale local data over newer Drive data.
+var _userMadeChange = false;
+
 function persist() {
   state.lastModified = Date.now();
+  _userMadeChange = true;
   localStorage.setItem('fp_v2_state', JSON.stringify(state));
   gSaveToDrive();
 }
@@ -2386,7 +2391,8 @@ window.addEventListener('load', function() {
     } else {
       updateSyncBar('offline');
     }
-});
+  });
+}); // end window.addEventListener('load')
 
 function gRefreshToken() {
   if (!gAuth.uid) return;
@@ -2501,7 +2507,7 @@ function gGetUserInfo() {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r){ return r.json(); }).then(function(info){
     gAuth.email = info.email || '';
-    gSaveMeta(gAuth.email, gAuth.fileId || '');
+    gSaveMeta(gAuth.email, gAuth.fileId || '', gAuth.uid);
     updateSyncBar('connected');
   }).catch(function(){ updateSyncBar('connected'); });
 }
@@ -2514,7 +2520,7 @@ function gFindOrCreateFile() {
     .then(function(data){
       if (data.files && data.files.length > 0) {
         gAuth.fileId = data.files[0].id;
-        gSaveMeta(gAuth.email, gAuth.fileId);
+        gSaveMeta(gAuth.email, gAuth.fileId, gAuth.uid);
         gLoadFromDrive();
       } else {
         gCreateFile();
@@ -2537,52 +2543,151 @@ function gCreateFile() {
     body: payload
   }).then(function(r){ return r.json(); }).then(function(data){
     gAuth.fileId = data.id;
-    gSaveMeta(gAuth.email, gAuth.fileId);
+    gSaveMeta(gAuth.email, gAuth.fileId, gAuth.uid);
     updateSyncBar('connected');
   }).catch(function(){ updateSyncBar('error'); });
+}
+
+function _applyDriveData(data) {
+  // Helper: overwrite local state with data from Drive
+  if (data.months) Object.keys(data.months).forEach(function(k){ state.months[k] = data.months[k]; });
+  if (data.transactions) Object.keys(data.transactions).forEach(function(k){ state.transactions[k] = data.transactions[k]; });
+  if (data.salary) state.salary = data.salary;
+  if (data.limits) state.limits = data.limits;
+  if (data.deductions) state.deductions = data.deductions;
+  if (data.periodList) state.periodList = data.periodList;
+  if (data.periods) state.periods = data.periods;
+  if (data.periodDates) state.periodDates = data.periodDates;
+  if (data.periodSnapshots) state.periodSnapshots = data.periodSnapshots;
+  if (data.salaryRange) state.salaryRange = data.salaryRange;
+  if (data.plannerName) state.plannerName = data.plannerName;
+  if (data.gasUrl) state.gasUrl = data.gasUrl;
+  if (data.offLedger) state.offLedger = data.offLedger;
+  if (data.offSpend) state.offSpend = data.offSpend;
+  if (data.savLedger) state.savLedger = data.savLedger;
+  if (data.savSpend) state.savSpend = data.savSpend;
+  if (data.lastModified) state.lastModified = data.lastModified;
+}
+
+function _localHasRealData() {
+  // Returns true if local state has meaningful data (not just empty init)
+  // Check transactions
+  if (state.transactions && Object.keys(state.transactions).length > 0) {
+    var hasEntries = Object.values(state.transactions).some(function(monthData) {
+      if (!monthData) return false;
+      return Object.values(monthData).some(function(arr) {
+        return Array.isArray(arr) && arr.length > 0;
+      });
+    });
+    if (hasEntries) return true;
+  }
+  // Check salary was set
+  if (state.salary && state.salary.total && state.salary.total > 0) return true;
+  // Check savLedger / offLedger
+  if (state.savLedger && state.savLedger.length > 0) return true;
+  if (state.offLedger && state.offLedger.length > 0) return true;
+  if (state.deductions && state.deductions.length > 0) return true;
+  if (state.periodList && Object.values(state.periodList).some(function(a){ return a && a.length > 0; })) return true;
+  return false;
 }
 
 function gLoadFromDrive() {
   fetch('https://www.googleapis.com/drive/v3/files/' + gAuth.fileId + '?alt=media', {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r){ return r.json(); }).then(function(data){
-    if (data && (data.months !== undefined || data.transactions !== undefined)) {
-      var driveTs = data.lastModified || 0;
-      var localTs = state.lastModified || 0;
+    if (!data || (data.months === undefined && data.transactions === undefined)) {
+      // Drive file is empty/uninitialized → push local up
+      updateSyncBar('connected');
+      gSaveToDrive(true);
+      return;
+    }
 
-      if (driveTs >= localTs) {
-        // Drive lebih baru atau sama → pakai Drive
-        if (data.months) Object.keys(data.months).forEach(function(k){ state.months[k] = data.months[k]; });
-        if (data.transactions) Object.keys(data.transactions).forEach(function(k){ state.transactions[k] = data.transactions[k]; });
-        if (data.salary) state.salary = data.salary;
-        if (data.limits) state.limits = data.limits;
-        if (data.deductions) state.deductions = data.deductions;
-        if (data.periodList) state.periodList = data.periodList;
-        if (data.periods) state.periods = data.periods;
-        if (data.periodDates) state.periodDates = data.periodDates;
-        if (data.periodSnapshots) state.periodSnapshots = data.periodSnapshots;
-        if (data.salaryRange) state.salaryRange = data.salaryRange;
-        if (data.plannerName) state.plannerName = data.plannerName;
-        if (data.gasUrl) state.gasUrl = data.gasUrl;
-        if (data.offLedger) state.offLedger = data.offLedger;
-        if (data.offSpend) state.offSpend = data.offSpend;
-        if (data.savLedger) state.savLedger = data.savLedger;
-        if (data.savSpend) state.savSpend = data.savSpend;
-        if (data.lastModified) state.lastModified = data.lastModified;
+    var driveTs = data.lastModified || 0;
+    var localTs = state.lastModified || 0;
+    var localHasData = _localHasRealData();
+    var driveHasData = (data.transactions && Object.values(data.transactions).some(function(m){
+      return m && Object.values(m).some(function(a){ return Array.isArray(a) && a.length > 0; });
+    })) || (data.salary && data.salary.total > 0) || (data.savLedger && data.savLedger.length > 0)
+      || (data.offLedger && data.offLedger.length > 0) || (data.deductions && data.deductions.length > 0)
+      || (data.periodList && Object.values(data.periodList).some(function(a){ return a && a.length > 0; }));
+
+    if (!localHasData && driveHasData) {
+      // Local is empty (cleared browser data) but Drive has data → always use Drive
+      _applyDriveData(data);
+      localStorage.setItem('fp_v2_state', JSON.stringify(state));
+      startApp();
+      updateSyncBar('connected');
+      showToast('✓ Restored from Drive!');
+    } else if (localHasData && !driveHasData) {
+      // Drive is empty but local has data → push local up (only if user made changes here)
+      if (_userMadeChange) {
+        updateSyncBar('connected');
+        showToast('↑ Uploading local data to Drive...');
+        gSaveToDrive(true);
+      } else {
+        // Drive empty + no user change → could be new account, just stay connected
+        updateSyncBar('connected');
+        gSaveToDrive(true); // first-time upload for this account
+      }
+    } else if (!localHasData && !driveHasData) {
+      // Both empty → nothing to do
+      updateSyncBar('connected');
+    } else {
+      // Both have data → compare timestamps, newer wins
+      if (driveTs > localTs) {
+        // Drive is definitively newer → use Drive
+        _applyDriveData(data);
         localStorage.setItem('fp_v2_state', JSON.stringify(state));
         startApp();
         updateSyncBar('connected');
-        showToast('✓ Synced from Drive!');
+        showToast('✓ Synced from Drive (newer)!');
+      } else if (localTs > driveTs) {
+        // Local timestamp is newer — but only push if user actually changed something
+        // on THIS device. Without this guard, a device that was just "last used longer ago"
+        // could falsely overwrite fresher Drive data from another device.
+        if (_userMadeChange) {
+          updateSyncBar('connected');
+          showToast('↑ Local newer — uploading to Drive...');
+          gSaveToDrive(true);
+        } else {
+          // localTs > driveTs but no user action here → trust Drive, pull it
+          // (This handles: device had older Drive data cached, another device updated Drive)
+          _applyDriveData(data);
+          localStorage.setItem('fp_v2_state', JSON.stringify(state));
+          startApp();
+          updateSyncBar('connected');
+          showToast('✓ Synced from Drive!');
+        }
       } else {
-        // Lokal lebih baru → push lokal ke Drive, jangan overwrite
+        // Same timestamp → already in sync
         updateSyncBar('connected');
-        showToast('↑ Local newer — uploading to Drive...');
-        gSaveToDrive(true);
       }
-    } else {
-      updateSyncBar('connected');
     }
   }).catch(function(){ updateSyncBar('error'); });
+}
+
+
+// ── Silent re-auth: refresh token then retry save (called on 401/network errors) ──
+function gSilentReauth(email, fileId) {
+  if (!gAuth.uid) return;
+  fetch(WORKER_URL + '/auth/token?uid=' + gAuth.uid)
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.error) {
+        // Refresh token expired → clear and show disconnected
+        gClearMeta();
+        gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null, uid:null };
+        return;
+      }
+      gAuth.token = data.access_token;
+      gAuth.connected = true;
+      if (fileId) gAuth.fileId = fileId;
+      // Retry the save
+      gSaveToDrive(true);
+    })
+    .catch(function() {
+      // Network still down — will retry on next visibilitychange
+    });
 }
 
 function gSaveToDrive(immediate) {

@@ -1966,33 +1966,100 @@ function gCreateFile() {
   }).catch(function(){ gSetStatus('error'); });
 }
 
+function _notesLocalHasData() {
+  if (D.journals && D.journals.length > 0) return true;
+  if (D.tasks && D.tasks.length > 0) return true;
+  if (D.notes && D.notes.length > 0) return true;
+  if (D.sermons && D.sermons.length > 0) return true;
+  return false;
+}
+
 function gLoadFromDrive() {
   fetch('https://www.googleapis.com/drive/v3/files/' + gAuth.fileId + '?alt=media', {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r){ return r.json(); }).then(function(data){
-    if (data && data.journals !== undefined) {
-      var driveTs = data.lastModified || 0;
-      var localTs = D.lastModified || 0;
-      if (driveTs >= localTs) {
-        // Drive lebih baru atau sama → pakai Drive
-        D = data;
-        if (!D.journals) D.journals = [];
-        if (!D.tasks) D.tasks = [];
-        if (!D.notes) D.notes = [];
-        if (!D.sermons) D.sermons = [];
-        if (!D.tagBookmarkColors) D.tagBookmarkColors = {};
-        try { localStorage.setItem('mc7', JSON.stringify(D)); } catch(e) {}
-        ra();
-        gSetStatus('connected');
-      } else {
-        // Lokal lebih baru → push ke Drive, jangan overwrite
-        gSetStatus('connected');
-        gSaveToDrive(true);
-      }
-    } else {
+    if (!data || data.journals === undefined) {
+      // Drive file kosong/uninitialized → push local
+      gSetStatus('connected');
+      gSaveToDrive(true);
+      return;
+    }
+
+    var driveTs = data.lastModified || 0;
+    var localTs = D.lastModified || 0;
+    var localHasData = _notesLocalHasData();
+    var driveHasData = (data.journals && data.journals.length > 0) ||
+                       (data.tasks && data.tasks.length > 0) ||
+                       (data.notes && data.notes.length > 0) ||
+                       (data.sermons && data.sermons.length > 0);
+
+    function applyDrive() {
+      D = data;
+      if (!D.journals) D.journals = [];
+      if (!D.tasks) D.tasks = [];
+      if (!D.notes) D.notes = [];
+      if (!D.sermons) D.sermons = [];
+      if (!D.tagBookmarkColors) D.tagBookmarkColors = {};
+      try { localStorage.setItem('mc7', JSON.stringify(D)); } catch(e) {}
+      ra();
       gSetStatus('connected');
     }
+
+    if (!localHasData && driveHasData) {
+      // Local kosong (clear browsing data) tapi Drive ada → restore dari Drive
+      applyDrive();
+      showToast && showToast('✓ Restored from Drive!');
+    } else if (localHasData && !driveHasData) {
+      // Drive kosong tapi local ada → upload local
+      gSetStatus('connected');
+      gSaveToDrive(true);
+    } else if (!localHasData && !driveHasData) {
+      // Dua-duanya kosong
+      gSetStatus('connected');
+    } else {
+      // Dua-duanya ada data → bandingkan timestamp
+      if (driveTs > localTs) {
+        // Drive lebih baru → pakai Drive
+        applyDrive();
+      } else if (localTs > driveTs) {
+        // Local lebih baru — tapi hanya push kalau user benar-benar edit di device ini
+        if (_userMadeChange) {
+          gSetStatus('connected');
+          gSaveToDrive(true);
+        } else {
+          // Tidak ada perubahan user di sesi ini → trust Drive (device lain yang edit)
+          applyDrive();
+        }
+      } else {
+        // Timestamp sama → sudah sync
+        gSetStatus('connected');
+      }
+    }
   }).catch(function(){ gSetStatus('error'); });
+}
+
+
+// ── Silent re-auth: refresh token then retry save (called on 401/network errors) ──
+function gSilentReauth(email, fileId) {
+  if (!gAuth.uid) return;
+  fetch(WORKER_URL + '/auth/token?uid=' + gAuth.uid)
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.error) {
+        // Refresh token expired → clear and show disconnected
+        gClearMeta();
+        gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null, uid:null };
+        return;
+      }
+      gAuth.token = data.access_token;
+      gAuth.connected = true;
+      if (fileId) gAuth.fileId = fileId;
+      // Retry the save
+      gSaveToDrive(true);
+    })
+    .catch(function() {
+      // Network still down — will retry on next visibilitychange
+    });
 }
 
 function gSaveToDrive(immediate) {
@@ -2053,8 +2120,11 @@ function gSetStatus(status) {
 function load(){
   try{var d=localStorage.getItem('mc7');if(d)D=JSON.parse(d);}catch(e){}
 }
+var _userMadeChange = false;
+
 function save(){
   D.lastModified = Date.now();
+  _userMadeChange = true;
   try{localStorage.setItem('mc7',JSON.stringify(D));}catch(e){}
   gSaveToDrive();
 }

@@ -1311,8 +1311,11 @@ if (D.date !== today()) {
   D = fresh(); D.bodyLogs=bl; D.settings=st; D.compIngredients=ci; D.workoutHistory=wh; D.activityHistory=ah; D.date=today();
 }
 
+var _userMadeChange = false;
+
 function save() {
   D.lastModified = Date.now();
+  _userMadeChange = true;
   localStorage.setItem(SK, JSON.stringify(D));
   gSaveToDrive();
 }
@@ -2202,14 +2205,6 @@ function gManualSync() {
 }
 
 window.addEventListener('load', function() {
-  var urlParams = new URLSearchParams(window.location.search);
-  var uid = urlParams.get('uid');
-  var email = urlParams.get('email');
-  if (uid) {
-    gAuth.uid = uid; gAuth.email = decodeURIComponent(email || '');
-    gSaveMeta(gAuth.email, '', uid);
-    window.history.replaceState({}, '', window.location.pathname);
-  }
   // Cek uid dari URL (hasil redirect login PWA)
   var urlParams = new URLSearchParams(window.location.search);
   var uidFromUrl = urlParams.get('uid');
@@ -2285,7 +2280,7 @@ function gGetUserInfo() {
     .then(function(r){ return r.json(); })
     .then(function(info){
       gAuth.email = info.email || '';
-      gSaveMeta(gAuth.email, gAuth.fileId || '');
+      gSaveMeta(gAuth.email, gAuth.fileId || '', gAuth.uid);
       updateSyncPill('connected');
     }).catch(function(){ updateSyncPill('connected'); });
 }
@@ -2298,7 +2293,7 @@ function gFindOrCreateFile() {
     .then(function(data){
       if (data.files && data.files.length > 0) {
         gAuth.fileId = data.files[0].id;
-        gSaveMeta(gAuth.email, gAuth.fileId);
+        gSaveMeta(gAuth.email, gAuth.fileId, gAuth.uid);
         gLoadFromDrive();
       } else {
         gCreateFile();
@@ -2319,9 +2314,19 @@ function gCreateFile() {
   }).then(function(r){ return r.json(); })
     .then(function(data){
       gAuth.fileId = data.id;
-      gSaveMeta(gAuth.email, gAuth.fileId);
+      gSaveMeta(gAuth.email, gAuth.fileId, gAuth.uid);
       updateSyncPill('connected');
     }).catch(function(){ updateSyncPill('error'); });
+}
+
+function _fitnessLocalHasData() {
+  if (D.bodyLogs && D.bodyLogs.length > 0) return true;
+  if (D.workoutHistory && D.workoutHistory.length > 0) return true;
+  if (D.activityHistory && D.activityHistory.length > 0) return true;
+  if (D.compIngredients && D.compIngredients.length > 0) return true;
+  if (D.foods && D.foods.length > 0) return true;
+  if (D.settings && D.settings.name) return true;
+  return false;
 }
 
 function gLoadFromDrive() {
@@ -2329,38 +2334,98 @@ function gLoadFromDrive() {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r){ return r.json(); })
     .then(function(data){
-      if (data && (data.foods !== undefined || data.settings !== undefined)) {
-        var driveTs = data.lastModified || 0;
-        var localTs = D.lastModified || 0;
+      if (!data || (data.foods === undefined && data.settings === undefined)) {
+        // Drive kosong → push local
+        updateSyncPill('connected');
+        gSaveToDrive(true);
+        return;
+      }
 
-        if (driveTs >= localTs) {
-          // Drive lebih baru atau sama → pakai Drive
-          if (data.settings) D.settings = data.settings;
-          if (data.bodyLogs && data.bodyLogs.length) D.bodyLogs = data.bodyLogs;
-          if (data.compIngredients) D.compIngredients = data.compIngredients;
-          if (data.workoutHistory) D.workoutHistory = data.workoutHistory;
-          if (data.activityHistory) D.activityHistory = data.activityHistory;
-          if (data.date === today()) {
-            if (data.foods) D.foods = data.foods;
-            if (data.acts) D.acts = data.acts;
-            if (data.workouts) D.workouts = data.workouts;
-            if (data.water !== undefined) D.water = data.water;
-            if (data.tasteLog) D.tasteLog = data.tasteLog;
-          }
-          if (data.lastModified) D.lastModified = data.lastModified;
-          localStorage.setItem(SK, JSON.stringify(D));
-          init(); renderAll();
-          updateSyncPill('connected');
-        } else {
-          // Lokal lebih baru → push lokal ke Drive, jangan overwrite
-          updateSyncPill('connected');
-          showToast('↑ Local newer — uploading...');
-          gSaveToDrive(true);
+      var driveTs = data.lastModified || 0;
+      var localTs = D.lastModified || 0;
+      var localHasData = _fitnessLocalHasData();
+      var driveHasData = (data.bodyLogs && data.bodyLogs.length > 0) ||
+                         (data.workoutHistory && data.workoutHistory.length > 0) ||
+                         (data.activityHistory && data.activityHistory.length > 0) ||
+                         (data.compIngredients && data.compIngredients.length > 0) ||
+                         (data.foods && data.foods.length > 0) ||
+                         (data.settings && data.settings.name);
+
+      function applyDrive() {
+        if (data.settings) D.settings = data.settings;
+        if (data.bodyLogs && data.bodyLogs.length) D.bodyLogs = data.bodyLogs;
+        if (data.compIngredients) D.compIngredients = data.compIngredients;
+        if (data.workoutHistory) D.workoutHistory = data.workoutHistory;
+        if (data.activityHistory) D.activityHistory = data.activityHistory;
+        if (data.date === today()) {
+          if (data.foods) D.foods = data.foods;
+          if (data.acts) D.acts = data.acts;
+          if (data.workouts) D.workouts = data.workouts;
+          if (data.water !== undefined) D.water = data.water;
+          if (data.tasteLog) D.tasteLog = data.tasteLog;
         }
-      } else {
+        if (data.lastModified) D.lastModified = data.lastModified;
+        localStorage.setItem(SK, JSON.stringify(D));
+        init(); renderAll();
         updateSyncPill('connected');
       }
+
+      if (!localHasData && driveHasData) {
+        // Local kosong (clear browsing data) → restore dari Drive
+        applyDrive();
+        showToast('✓ Restored from Drive!');
+      } else if (localHasData && !driveHasData) {
+        // Drive kosong tapi local ada → upload
+        updateSyncPill('connected');
+        gSaveToDrive(true);
+      } else if (!localHasData && !driveHasData) {
+        // Dua-duanya kosong
+        updateSyncPill('connected');
+      } else {
+        // Dua-duanya ada data → bandingkan timestamp
+        if (driveTs > localTs) {
+          // Drive lebih baru → pakai Drive
+          applyDrive();
+        } else if (localTs > driveTs) {
+          // Local lebih baru — hanya push kalau user benar-benar edit di device ini
+          if (_userMadeChange) {
+            updateSyncPill('connected');
+            showToast('↑ Local newer — uploading...');
+            gSaveToDrive(true);
+          } else {
+            // Tidak ada perubahan user di sesi ini → trust Drive
+            applyDrive();
+          }
+        } else {
+          // Timestamp sama → sudah sync
+          updateSyncPill('connected');
+        }
+      }
     }).catch(function(){ updateSyncPill('error'); });
+}
+
+
+// ── Silent re-auth: refresh token then retry save (called on 401/network errors) ──
+function gSilentReauth(email, fileId) {
+  if (!gAuth.uid) return;
+  fetch(WORKER_URL + '/auth/token?uid=' + gAuth.uid)
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.error) {
+        // Refresh token expired → clear and show disconnected
+        gClearMeta();
+        gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null, uid:null };
+        return;
+      }
+      gAuth.token = data.access_token;
+      gAuth.connected = true;
+      if (fileId) gAuth.fileId = fileId;
+      // Retry the save
+      gSaveToDrive(true);
+    })
+    .catch(function() {
+      // Network still down — will retry on next visibilitychange
+    });
 }
 
 function gSaveToDrive(immediate) {
