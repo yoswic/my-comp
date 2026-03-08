@@ -1437,7 +1437,7 @@ body{
   <div class="jmodal-box">
     <div class="jmodal-hd">
       <div class="jmodal-date-pill" id="jModalDate">Journal</div>
-      <button class="jmodal-x" onclick="document.getElementById('mJ').classList.remove('open');document.body.style.overflow='';">✕</button>
+      <button class="jmodal-x" onclick="clearTimeout(_jSaveTimer);autoSaveJ();document.getElementById('mJ').classList.remove('open');document.body.style.overflow='';">✕</button>
     </div>
     <div class="jmodal-body">
       <div class="jmodal-section">
@@ -1450,17 +1450,17 @@ body{
       </div>
       <div class="jmodal-section">
         <div class="jmodal-label">Summary</div>
-        <textarea class="jmodal-input" id="jSummary" rows="3" placeholder="How was your day?..."></textarea>
+        <textarea class="jmodal-input" id="jSummary" rows="3" placeholder="How was your day?..." oninput="scheduleJSave()"></textarea>
       </div>
       <div class="jmodal-section">
         <div class="jmodal-label">Inspiration</div>
-        <textarea class="jmodal-input" id="jInspiration" rows="2" placeholder="What inspired you today?..."></textarea>
+        <textarea class="jmodal-input" id="jInspiration" rows="2" placeholder="What inspired you today?..." oninput="scheduleJSave()"></textarea>
       </div>
       <div class="jmodal-section">
         <div class="jmodal-label">Verse of the Day</div>
-        <textarea class="jmodal-input" id="jVerse" rows="2" placeholder="Your verse for today..."></textarea>
+        <textarea class="jmodal-input" id="jVerse" rows="2" placeholder="Your verse for today..." oninput="scheduleJSave()"></textarea>
       </div>
-      <button class="jmodal-save" onclick="sJ()">Save</button>
+      <div id="jSaveStatus" style="font-size:10px;font-weight:700;color:var(--text3);text-align:center;padding:8px 0 2px;letter-spacing:.06em;text-transform:uppercase;min-height:28px;transition:color .3s;"></div>
     </div>
   </div>
 </div>
@@ -1521,17 +1521,17 @@ body{
 <!-- ═══ NOTE FULLPAGE — notebook style ═══ -->
 <div class="fullpage" id="fpNote">
   <div class="fp-header">
-    <button class="fp-back" onclick="closeFP('fpNote')">&#8592;</button>
+    <button class="fp-back" onclick="clearTimeout(_nSaveTimer);autoSaveN();closeFP('fpNote')">&#8592;</button>
     <div style="flex:1;display:flex;align-items:center;gap:5px;background:transparent;border:1px solid rgba(0,0,0,0.08);border-radius:20px;padding:7px 12px;margin:0 8px;min-width:0;">
       <span style="font-family:Nunito,sans-serif;font-size:8px;font-weight:900;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;flex-shrink:0;">TAG</span>
-      <input style="background:none;border:none;outline:none;font-family:Nunito,sans-serif;font-size:9px;font-weight:900;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;text-align:right;flex:1;min-width:0;" id="nTag" placeholder="idea, recipe...">
+      <input style="background:none;border:none;outline:none;font-family:Nunito,sans-serif;font-size:9px;font-weight:900;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;text-align:right;flex:1;min-width:0;" id="nTag" placeholder="idea, recipe..." oninput="scheduleNSave()">
     </div>
-    <button class="fp-save-btn" onclick="sN()">Save</button>
   </div>
   <div class="fp-page">
     <div style="padding:6px 20px 0;"><span class="nb-meta-date-label" id="nDateLabel"></span></div>
-    <textarea class="nb-title" id="nTitle" placeholder="Untitled" rows="1" oninput="autoResize(this)"></textarea>
-    <div id="nBody" class="nb-body" contenteditable="true" data-placeholder="Start writing..."></div>
+    <textarea class="nb-title" id="nTitle" placeholder="Untitled" rows="1" oninput="autoResize(this);scheduleNSave()"></textarea>
+    <div id="nSaveStatus" style="font-size:10px;font-weight:700;color:var(--text3);padding:0 20px 4px;letter-spacing:.06em;text-transform:uppercase;min-height:18px;transition:color .3s;"></div>
+    <div id="nBody" class="nb-body" contenteditable="true" data-placeholder="Start writing..." oninput="scheduleNSave()"></div>
   <div class="nb-toolbar-wrap" id="tbNote">
   <div class="ntb-bottom-row" style="justify-content:center;">
     <div id="ntbPopup_fmt" class="ntb-popup-pill">
@@ -1578,12 +1578,11 @@ body{
 <!-- ═══ SERMON FULLPAGE — notebook style ═══ -->
 <div class="fullpage" id="fpSermon">
   <div class="fp-header">
-    <button class="fp-back" onclick="closeFP('fpSermon')">&#8592;</button>
+    <button class="fp-back" onclick="clearTimeout(_sSaveTimer);autoSaveS();closeFP('fpSermon')">&#8592;</button>
     <div style="flex:1;display:flex;align-items:center;gap:5px;background:transparent;border:1px solid rgba(0,0,0,0.08);border-radius:20px;padding:7px 12px;margin:0 8px;min-width:0;">
       <span style="font-family:Nunito,sans-serif;font-size:8px;font-weight:900;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;flex-shrink:0;">TAG</span>
-      <input style="background:none;border:none;outline:none;font-family:Nunito,sans-serif;font-size:9px;font-weight:900;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;text-align:right;flex:1;min-width:0;" id="sTags" placeholder="Faith, Grace...">
+      <input style="background:none;border:none;outline:none;font-family:Nunito,sans-serif;font-size:9px;font-weight:900;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;text-align:right;flex:1;min-width:0;" id="sTags" placeholder="Faith, Grace..." oninput="scheduleSSave()">
     </div>
-    <button class="fp-save-btn" onclick="sS()">Save</button>
   </div>
   <div class="fp-page">
     <div style="padding:6px 20px 8px;position:relative;display:inline-block;">
@@ -1592,8 +1591,9 @@ body{
       </div>
       <input id="sDate" type="date" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;" oninput="var d=new Date(this.value+'T00:00:00');document.getElementById('sDateLabel').textContent=d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});">
     </div>
-    <textarea class="nb-title" id="sTitle" placeholder="Sermon title..." rows="1" oninput="autoResize(this)"></textarea>
-    <div id="sBody" class="nb-body" contenteditable="true" data-placeholder="Write your notes..."></div>
+    <textarea class="nb-title" id="sTitle" placeholder="Sermon title..." rows="1" oninput="autoResize(this);scheduleSSave()"></textarea>
+    <div id="sSaveStatus" style="font-size:10px;font-weight:700;color:var(--text3);padding:0 20px 4px;letter-spacing:.06em;text-transform:uppercase;min-height:18px;transition:color .3s;"></div>
+    <div id="sBody" class="nb-body" contenteditable="true" data-placeholder="Write your notes..." oninput="scheduleSSave()"></div>
   </div>
   <!-- floating tag pill — above toolbar -->
 
@@ -2202,6 +2202,36 @@ function addS(){
 function rmS(btn){btn.parentElement.remove();}
 
 // ── SAVES ──
+var _jSaveTimer = null;
+
+function scheduleJSave() {
+  var status = document.getElementById('jSaveStatus');
+  if (status) { status.textContent = 'Saving...'; status.style.color = 'var(--text3)'; }
+  clearTimeout(_jSaveTimer);
+  _jSaveTimer = setTimeout(function(){ autoSaveJ(); }, 1500);
+}
+
+function autoSaveJ() {
+  var summary = document.getElementById('jSummary').value.trim();
+  var inspiration = document.getElementById('jInspiration').value.trim();
+  var verse = document.getElementById('jVerse').value.trim();
+  if (!summary && !inspiration && !verse) return;
+  var existing = D.journals.findIndex(function(j){ return j.date === jCurrentDate; });
+  if (existing >= 0) {
+    D.journals[existing].summary = summary;
+    D.journals[existing].inspiration = inspiration;
+    D.journals[existing].verse = verse;
+  } else {
+    D.journals.unshift({ id:Date.now(), date:jCurrentDate, summary:summary, inspiration:inspiration, verse:verse, events:[] });
+  }
+  save(); renderCalendar();
+  var status = document.getElementById('jSaveStatus');
+  if (status) { status.textContent = 'Saved'; status.style.color = 'var(--accent)'; }
+  setTimeout(function(){
+    if (status) { status.textContent = 'All changes saved'; status.style.color = 'var(--text3)'; }
+  }, 1500);
+}
+
 function sJ(){
   var summary=document.getElementById('jSummary').value.trim();
   var inspiration=document.getElementById('jInspiration').value.trim();
@@ -2240,6 +2270,34 @@ function sT(){
   save();ra();editTaskId=null;closeTModal();
 }
 
+var _nSaveTimer = null;
+
+function scheduleNSave() {
+  var status = document.getElementById('nSaveStatus');
+  if (status) { status.textContent = 'Saving...'; status.style.color = 'var(--text3)'; }
+  clearTimeout(_nSaveTimer);
+  _nSaveTimer = setTimeout(function(){ autoSaveN(); }, 1500);
+}
+
+function autoSaveN() {
+  var ed = document.getElementById('nBody');
+  var html = ed.innerHTML.trim(); var plain = strip(html);
+  if (!plain) return;
+  var title = document.getElementById('nTitle').value.trim() || 'Untitled';
+  var tag = document.getElementById('nTag').value.trim();
+  if (editNoteId) {
+    D.notes = D.notes.map(function(n){ return n.id===editNoteId ? Object.assign({},n,{title:title,tag:tag,body:plain,html:html}) : n; });
+  } else {
+    var newId = Date.now();
+    editNoteId = newId;
+    D.notes.unshift({id:newId, date:td(), title:title, tag:tag, body:plain, html:html});
+  }
+  save(); rN();
+  var status = document.getElementById('nSaveStatus');
+  if (status) { status.textContent = 'Saved'; status.style.color = 'var(--accent)'; }
+  setTimeout(function(){ if (status) { status.textContent = 'All changes saved'; status.style.color = 'var(--text3)'; } }, 1500);
+}
+
 function sN(){
   var ed=document.getElementById('nBody');
   var html=ed.innerHTML.trim();var plain=strip(html);
@@ -2256,6 +2314,35 @@ function sN(){
   save();ra();
   editNoteId=null;
   closeFP('fpNote');
+}
+
+var _sSaveTimer = null;
+
+function scheduleSSave() {
+  var status = document.getElementById('sSaveStatus');
+  if (status) { status.textContent = 'Saving...'; status.style.color = 'var(--text3)'; }
+  clearTimeout(_sSaveTimer);
+  _sSaveTimer = setTimeout(function(){ autoSaveS(); }, 1500);
+}
+
+function autoSaveS() {
+  var ed = document.getElementById('sBody');
+  var html = ed.innerHTML.trim(); var plain = strip(html);
+  var t = document.getElementById('sTitle').value.trim(); if (!t) return;
+  var raw = document.getElementById('sTags').value.trim(); var tags = [];
+  if (raw) raw.split(',').forEach(function(x){ if(x.trim()) tags.push(x.trim()); });
+  var obj = {title:t, speaker:document.getElementById('sSpeaker').value.trim(), date:document.getElementById('sDate').value||td(), church:document.getElementById('sChurch').value.trim(), body:plain, html:html, tags:tags};
+  if (editSermonId) {
+    D.sermons = D.sermons.map(function(s){ return s.id===editSermonId ? Object.assign({},s,obj) : s; });
+  } else {
+    obj.id = Date.now();
+    editSermonId = obj.id;
+    D.sermons.unshift(obj);
+  }
+  save(); rS();
+  var status = document.getElementById('sSaveStatus');
+  if (status) { status.textContent = 'Saved'; status.style.color = 'var(--accent)'; }
+  setTimeout(function(){ if (status) { status.textContent = 'All changes saved'; status.style.color = 'var(--text3)'; } }, 1500);
 }
 
 function sS(){
@@ -2376,7 +2463,7 @@ function closeTModal(){document.getElementById('mT').classList.remove('open');do
 function tBackdropClose(e){if(e.target===document.getElementById('mT'))closeTModal();}
 function openTModal(){openTaskFP(null);}
 
-function jBackdropClose(e){if(e.target===document.getElementById('mJ'))document.getElementById('mJ').classList.remove('open');document.body.style.overflow='';}
+function jBackdropClose(e){if(e.target===document.getElementById('mJ')){clearTimeout(_jSaveTimer);autoSaveJ();document.getElementById('mJ').classList.remove('open');document.body.style.overflow='';}}
 function jCalCheckFetch() {
   if (!gAuth.connected) return;
   var viewDate = new Date(jCalYear, jCalMonth, 1);
