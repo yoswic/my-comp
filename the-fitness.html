@@ -2210,6 +2210,14 @@ window.addEventListener('load', function() {
     gSaveMeta(gAuth.email, '', uid);
     window.history.replaceState({}, '', window.location.pathname);
   }
+  // Cek uid dari URL (hasil redirect login PWA)
+  var urlParams = new URLSearchParams(window.location.search);
+  var uidFromUrl = urlParams.get('uid');
+  var emailFromUrl = urlParams.get('email');
+  if (uidFromUrl) {
+    gSaveMeta(decodeURIComponent(emailFromUrl || ''), '', uidFromUrl);
+    window.history.replaceState({}, '', window.location.pathname);
+  }
   gLoadMeta().then(function(meta) {
     if (meta && meta.uid) {
       gAuth.uid = meta.uid; gAuth.email = meta.email || ''; gAuth.fileId = meta.fileId || null;
@@ -2242,9 +2250,17 @@ document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible' && gAuth.uid) gRefreshToken();
 });
 
+function isPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
 function gConnect() {
   if (gAuth.connected) { gManualSync(); return; }
-  var popup = window.open(WORKER_URL + '/auth/login?redirect=' + encodeURIComponent(window.location.href), 'gdrive_auth', 'width=500,height=600,scrollbars=yes');
+  var loginUrl = WORKER_URL + '/auth/login?redirect=' + encodeURIComponent(window.location.origin + window.location.pathname);
+  if (isPWA()) {
+    window.location.href = loginUrl;
+    return;
+  }
+  var popup = window.open(loginUrl, 'gdrive_auth', 'width=500,height=600,scrollbars=yes');
   window.addEventListener('message', function onMsg(e) {
     if (!e.data || e.data.type !== 'gdrive_auth') return;
     window.removeEventListener('message', onMsg);

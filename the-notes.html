@@ -1766,6 +1766,14 @@ function gClearMeta() {
 
 // ── Auto-reconnect on load — just fetch fresh token from Worker ──
 window.addEventListener('load', function() {
+  // Cek uid dari URL (hasil redirect login PWA)
+  var urlParams = new URLSearchParams(window.location.search);
+  var uidFromUrl = urlParams.get('uid');
+  var emailFromUrl = urlParams.get('email');
+  if (uidFromUrl) {
+    gSaveMeta(decodeURIComponent(emailFromUrl || ''), '', uidFromUrl);
+    window.history.replaceState({}, '', window.location.pathname);
+  }
   gLoadMeta().then(function(meta) {
     if (meta && meta.uid) {
       gAuth.uid = meta.uid;
@@ -1826,10 +1834,13 @@ document.addEventListener('visibilitychange', function() {
 });
 
 // ── First-time connect — open Worker login URL in popup ──
+function isPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
 function gConnect() {
   if (gAuth.connected) { gManualSync(); return; }
 
-  // Check if returning from auth (uid in URL params)
+  // Check if returning from auth redirect (uid in URL params)
   var urlParams = new URLSearchParams(window.location.search);
   var uid = urlParams.get('uid');
   var email = urlParams.get('email');
@@ -1839,16 +1850,20 @@ function gConnect() {
     gSaveMeta(gAuth.email, '', uid);
     gSetStatus('syncing');
     gRefreshToken();
-    // Clean URL
     window.history.replaceState({}, '', window.location.pathname);
     return;
   }
 
-  // Open auth popup
-  var loginUrl = WORKER_URL + '/auth/login?redirect=' + encodeURIComponent(window.location.href);
-  var popup = window.open(loginUrl, 'gdrive_auth', 'width=500,height=600,scrollbars=yes');
+  var loginUrl = WORKER_URL + '/auth/login?redirect=' + encodeURIComponent(window.location.origin + window.location.pathname);
 
-  // Listen for postMessage from popup
+  if (isPWA()) {
+    // PWA: popup diblokir Android Chrome — pakai redirect
+    window.location.href = loginUrl;
+    return;
+  }
+
+  // Browser biasa: pakai popup
+  var popup = window.open(loginUrl, 'gdrive_auth', 'width=500,height=600,scrollbars=yes');
   window.addEventListener('message', function onMsg(e) {
     if (!e.data || e.data.type !== 'gdrive_auth') return;
     window.removeEventListener('message', onMsg);
