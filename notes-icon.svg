@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" ry="112" fill="#7c3aed"/>
+  <g fill="white">
+    <!-- Notebook page -->
+    <rect x="120" y="100" width="272" height="312" rx="20"/>
+    <!-- Lines -->
+    <rect x="160" y="180" width="192" height="18" rx="9" fill="#7c3aed"/>
+    <rect x="160" y="230" width="160" height="18" rx="9" fill="#7c3aed"/>
+    <rect x="160" y="280" width="176" height="18" rx="9" fill="#7c3aed"/>
+    <rect x="160" y="330" width="120" height="18" rx="9" fill="#7c3aed"/>
+    <!-- Pen -->
+    <rect x="300" y="340" width="28" height="90" rx="8" fill="#7c3aed" transform="rotate(-45 314 385)"/>
+    <polygon points="278,412 298,392 308,412" fill="#7c3aed"/>
+  </g>
+</svg>
