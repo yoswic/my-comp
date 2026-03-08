@@ -1710,109 +1710,127 @@ var EMOJI={bahagia:':-)',tenang:'-_-',biasa:'...',sedih:':-(',kesal:'>.<'};
 
 // ══════════════════════════════════════════════
 // GOOGLE DRIVE SYNC
-// Replace CLIENT_ID dengan Client ID dari Google Cloud Console kamu
 // ══════════════════════════════════════════════
-var GDRIVE_CLIENT_ID = '327802388523-7s84h5ckpob6murf08vnjhl94lllkqvs.apps.googleusercontent.com';
-var GDRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/calendar.readonly';
+// WORKER-BASED AUTH — Never expires, truly persistent
+// Set WORKER_URL to your deployed Cloudflare Worker URL
+// ══════════════════════════════════════════════
+var WORKER_URL = 'https://thenotes-gdrive-auth.yosuawic.workers.dev';
 var GDRIVE_FILE_NAME = 'mycompanion-data.json';
 var GDRIVE_SK = 'mc7_gdrive';
 
-var gAuth = { token: null, fileId: null, connected: false, syncing: false, email: null };
+var gAuth = { token: null, fileId: null, connected: false, syncing: false, email: null, uid: null };
 var _tokenRefreshTimer = null;
 var _saveDriveTimer = null;
+var gcalEvents = {};
 
-// ── Simpan metadata (email + fileId), bukan token ──
-function gSaveMeta(email, fileId) {
-  try { localStorage.setItem(GDRIVE_SK, JSON.stringify({ email: email||'', fileId: fileId||'' })); } catch(e) {}
+// ── Simpan uid + fileId di localStorage (aman — bukan token) ──
+function gSaveMeta(email, fileId, uid) {
+  try { localStorage.setItem(GDRIVE_SK, JSON.stringify({ email: email||'', fileId: fileId||'', uid: uid||'' })); } catch(e) {}
 }
 function gLoadMeta() {
   try { var r = localStorage.getItem(GDRIVE_SK); return r ? JSON.parse(r) : null; } catch(e) { return null; }
 }
 function gClearMeta() { try { localStorage.removeItem(GDRIVE_SK); } catch(e) {} }
 
-var gcalEvents = {}; // { 'YYYY-MM-DD': [{title, time, color}, ...] }
-
-// ── Load Google Identity Services ──
-(function(){
-  var s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.async = true;
-  s.defer = true;
-  s.onload = function() { gTryAutoReconnect(); };
-  document.head.appendChild(s);
-})();
-
-// ── Auto-reconnect setiap load ──
-function gTryAutoReconnect() {
+// ── Auto-reconnect on load — just fetch fresh token from Worker ──
+window.addEventListener('load', function() {
   var meta = gLoadMeta();
-  if (!meta || !meta.email) { gSetStatus('local'); return; }
-  gAuth.email = meta.email;
-  gAuth.fileId = meta.fileId || null;
-  gSetStatus('syncing');
-  gSilentReauth(meta.email, meta.fileId);
-}
-
-function gSilentReauth(hint, knownFileId) {
-  if (!window.google || !window.google.accounts) {
-    setTimeout(function(){ gSilentReauth(hint, knownFileId); }, 800);
-    return;
+  if (meta && meta.uid) {
+    gAuth.uid = meta.uid;
+    gAuth.email = meta.email || '';
+    gAuth.fileId = meta.fileId || null;
+    gSetStatus('syncing');
+    gRefreshToken();
+  } else {
+    gSetStatus('local');
   }
-  var client = google.accounts.oauth2.initTokenClient({
-    client_id: GDRIVE_CLIENT_ID,
-    scope: GDRIVE_SCOPES,
-    hint: hint || '',
-    prompt: '',
-    callback: function(resp) {
-      if (resp.error || !resp.access_token) { gSetStatus('local'); return; }
-      gAuth.token = resp.access_token;
+});
+
+// ── Get fresh token from Worker (auto-refreshes via refresh_token) ──
+function gRefreshToken() {
+  if (!gAuth.uid) return;
+  fetch(WORKER_URL + '/auth/token?uid=' + gAuth.uid)
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.error) {
+        // Refresh token invalid — user needs to re-login once
+        gSetStatus('local');
+        gClearMeta();
+        gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null, uid:null };
+        return;
+      }
+      gAuth.token = data.access_token;
       gAuth.connected = true;
-      gAuth.email = hint || gAuth.email || '';
-      if (knownFileId) {
-        gAuth.fileId = knownFileId;
-        gSaveMeta(gAuth.email, gAuth.fileId);
+      gAuth.email = data.email || gAuth.email;
+      if (gAuth.fileId) {
         gLoadFromDrive();
       } else {
         gFindOrCreateFile();
       }
       gFetchCalendarEvents();
       gScheduleTokenRefresh();
-    }
-  });
-  client.requestAccessToken();
+      gSetStatus('connected');
+    })
+    .catch(function() {
+      // Network error — keep local, retry on next visibility
+      gSetStatus('local');
+    });
 }
 
-// ── Auto-refresh token setiap 50 menit ──
+// ── Schedule next refresh before token expires ──
 function gScheduleTokenRefresh() {
   clearTimeout(_tokenRefreshTimer);
   _tokenRefreshTimer = setTimeout(function() {
-    if (gAuth.email) gSilentReauth(gAuth.email, gAuth.fileId);
-  }, 50 * 60 * 1000);
+    if (gAuth.uid) gRefreshToken();
+  }, 45 * 60 * 1000);
 }
 
+// ── Refresh when app comes back to foreground ──
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && gAuth.uid) {
+    gRefreshToken();
+  }
+});
+
+// ── First-time connect — open Worker login URL in popup ──
 function gConnect() {
   if (gAuth.connected) { gManualSync(); return; }
-  if (!window.google || !window.google.accounts) {
-    alert('Google SDK belum load. Coba lagi sebentar.');
+
+  // Check if returning from auth (uid in URL params)
+  var urlParams = new URLSearchParams(window.location.search);
+  var uid = urlParams.get('uid');
+  var email = urlParams.get('email');
+  if (uid) {
+    gAuth.uid = uid;
+    gAuth.email = decodeURIComponent(email || '');
+    gSaveMeta(gAuth.email, '', uid);
+    gSetStatus('syncing');
+    gRefreshToken();
+    // Clean URL
+    window.history.replaceState({}, '', window.location.pathname);
     return;
   }
-  var client = google.accounts.oauth2.initTokenClient({
-    client_id: GDRIVE_CLIENT_ID,
-    scope: GDRIVE_SCOPES,
-    callback: function(resp) {
-      if (resp.error) { gSetStatus('error'); return; }
-      gAuth.token = resp.access_token;
-      gAuth.connected = true;
-      gGetUserInfo();
-      gFindOrCreateFile();
-      gFetchCalendarEvents();
-      gScheduleTokenRefresh();
-    }
+
+  // Open auth popup
+  var loginUrl = WORKER_URL + '/auth/login?redirect=' + encodeURIComponent(window.location.href);
+  var popup = window.open(loginUrl, 'gdrive_auth', 'width=500,height=600,scrollbars=yes');
+
+  // Listen for postMessage from popup
+  window.addEventListener('message', function onMsg(e) {
+    if (!e.data || e.data.type !== 'gdrive_auth') return;
+    window.removeEventListener('message', onMsg);
+    if (popup) popup.close();
+    gAuth.uid = e.data.uid;
+    gAuth.email = decodeURIComponent(e.data.email || '');
+    gSaveMeta(gAuth.email, '', gAuth.uid);
+    gSetStatus('syncing');
+    gRefreshToken();
   });
-  client.requestAccessToken();
 }
 
 function gManualSync() {
   if (!gAuth.connected) { gConnect(); return; }
+  gRefreshToken();
   gSaveToDrive(true);
 }
 
@@ -1840,9 +1858,12 @@ function gPullFromDrive() {
 function gDisconnect() {
   clearTimeout(_tokenRefreshTimer);
   clearTimeout(_saveDriveTimer);
-  try { if (gAuth.token) google.accounts.oauth2.revoke(gAuth.token); } catch(e) {}
+  if (gAuth.uid) {
+    fetch(WORKER_URL + '/auth/logout?uid=' + gAuth.uid, { method: 'GET' }).catch(function(){});
+  }
   gClearMeta();
-  gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null };
+  gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null, uid:null };
+
   gcalEvents = {};
   var calBtn = document.getElementById('gcalCalBtn');
   if (calBtn) calBtn.style.display = 'none';
