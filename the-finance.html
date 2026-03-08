@@ -2530,7 +2530,7 @@ function gFindOrCreateFile() {
 
 function gCreateFile() {
   var meta = JSON.stringify({ name: GDRIVE_FILE_NAME, parents: ['appDataFolder'] });
-  var body = JSON.stringify(state);
+  var body = JSON.stringify(Object.assign({}, state, { _appId: 'thefinance' }));
   var boundary = '-------fp_boundary';
   var payload = '--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + meta +
     '\r\n--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + body + '\r\n--' + boundary + '--';
@@ -2595,10 +2595,11 @@ function gLoadFromDrive() {
   fetch('https://www.googleapis.com/drive/v3/files/' + gAuth.fileId + '?alt=media', {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r){ return r.json(); }).then(function(data){
-    if (!data || (data.months === undefined && data.transactions === undefined)) {
-      // Drive file is empty/uninitialized → push local up
-      updateSyncBar('connected');
-      gSaveToDrive(true);
+    if (!data || (data.months === undefined && data.transactions === undefined) || (data._appId && data._appId !== 'thefinance')) {
+      // Drive kosong atau file milik app lain → buat file baru untuk finance
+      gAuth.fileId = null;
+      gSaveMeta(gAuth.email, '', gAuth.uid);
+      gCreateFile();
       return;
     }
 
@@ -2702,7 +2703,7 @@ function gSaveToDrive(immediate) {
         Authorization: 'Bearer ' + gAuth.token,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(Object.assign({}, state, { lastModified: state.lastModified || Date.now() }))
+      body: JSON.stringify(Object.assign({}, state, { lastModified: state.lastModified || Date.now(), _appId: 'thefinance' }))
     }).then(function(){
       gAuth.syncing = false;
       updateSyncBar('connected');

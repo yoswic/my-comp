@@ -2303,7 +2303,7 @@ function gFindOrCreateFile() {
 
 function gCreateFile() {
   var meta = JSON.stringify({ name: GDRIVE_FILE_NAME, parents: ['appDataFolder'] });
-  var body = JSON.stringify(D);
+  var body = JSON.stringify(Object.assign({}, D, { _appId: 'thefitness' }));
   var boundary = '-------tft_boundary';
   var payload = '--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + meta +
     '\r\n--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + body + '\r\n--' + boundary + '--';
@@ -2334,10 +2334,11 @@ function gLoadFromDrive() {
     headers: { Authorization: 'Bearer ' + gAuth.token }
   }).then(function(r){ return r.json(); })
     .then(function(data){
-      if (!data || (data.foods === undefined && data.settings === undefined)) {
-        // Drive kosong → push local
-        updateSyncPill('connected');
-        gSaveToDrive(true);
+      if (!data || (data.foods === undefined && data.settings === undefined) || (data._appId && data._appId !== 'thefitness')) {
+        // Drive kosong atau file milik app lain → create file baru untuk fitness
+        gAuth.fileId = null;
+        gSaveMeta(gAuth.email, '', gAuth.uid);
+        gCreateFile();
         return;
       }
 
@@ -2436,7 +2437,7 @@ function gSaveToDrive(immediate) {
     fetch('https://www.googleapis.com/upload/drive/v3/files/' + gAuth.fileId + '?uploadType=media', {
       method: 'PATCH',
       headers: { Authorization: 'Bearer ' + gAuth.token, 'Content-Type': 'application/json' },
-      body: JSON.stringify(Object.assign({}, D, { lastModified: D.lastModified || Date.now() }))
+      body: JSON.stringify(Object.assign({}, D, { lastModified: D.lastModified || Date.now(), _appId: 'thefitness' }))
     }).then(function(){
       gAuth.syncing = false; updateSyncPill('connected');
     }).catch(function(){
