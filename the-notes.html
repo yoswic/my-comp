@@ -1766,14 +1766,6 @@ function gClearMeta() {
 
 // ── Auto-reconnect on load — just fetch fresh token from Worker ──
 window.addEventListener('load', function() {
-  // DEBUG — hapus setelah fix
-  setTimeout(function() {
-    var ls = localStorage.getItem('mc7_gdrive');
-    var isPwa = window.matchMedia('(display-mode: standalone)').matches;
-    var msg = 'isPWA: ' + isPwa + '\nlocalStorage: ' + (ls ? ls.substring(0,80) : 'NULL');
-    alert(msg);
-  }, 1000);
-
   // Cek uid dari URL (hasil redirect login PWA)
   var urlParams = new URLSearchParams(window.location.search);
   var uidFromUrl = urlParams.get('uid');
