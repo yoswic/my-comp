@@ -2144,7 +2144,7 @@ var _idb = null;
 function _openIDB() {
   if (_idb) return Promise.resolve(_idb);
   return new Promise(function(resolve, reject) {
-    var req = indexedDB.open('gdrive_meta_db', 1);
+    var req = indexedDB.open('fitness_gdrive_meta_db', 1);
     req.onupgradeneeded = function(e) { e.target.result.createObjectStore('meta', { keyPath: 'k' }); };
     req.onsuccess = function(e) { _idb = e.target.result; resolve(_idb); };
     req.onerror = function() { reject(req.error); };
