@@ -45,7 +45,7 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
   background:rgba(255,255,255,0.75);
   -webkit-mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
   mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
-  padding:calc(18px + var(--safe-top)) 20px 22px;
+  padding:calc(14px + var(--safe-top)) 20px 14px;
   display:flex;align-items:center;justify-content:space-between;
   pointer-events:none;border:none;
 }
@@ -133,6 +133,20 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
 }
 
 /* ─── TOAST / SPINNER ─── */
+
+/* ── SETTINGS MODAL ── */
+.apikey-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;}
+.apikey-modal{background:#fff;width:100%;max-width:360px;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:0;box-shadow:0 20px 60px rgba(0,0,0,0.25);}
+.apikey-modal-title{font-family:var(--syne);font-weight:800;font-size:18px;color:var(--t1);letter-spacing:.02em;margin-bottom:16px;}
+.apikey-modal-sub{font-size:12px;color:var(--t3);line-height:1.5;}
+.apikey-input{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:12px 16px;font-size:13px;font-family:var(--sans);color:var(--t1);outline:none;user-select:text;-webkit-user-select:text;}
+.apikey-input:focus{border-color:#111;}
+.apikey-save-btn{width:100%;padding:14px;border-radius:999px;background:#111;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:800;color:#fff;letter-spacing:.04em;}
+.apikey-cancel-btn{width:100%;padding:10px;border-radius:999px;background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--t3);}
+.settings-btn{width:44px;height:44px;border-radius:50%;background:#111;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 10px rgba(0,0,0,0.22);padding:0;}
+.settings-btn:active{opacity:.75;}
+.settings-btn svg{width:17px;height:17px;}
+
 .sync-pill-btn{padding:5px 12px;border-radius:999px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);transition:all .18s;white-space:nowrap;}
 .sync-pill-btn.syncing{background:rgba(0,0,0,0.06);color:var(--t3);}
 .sync-pill-btn.error{background:#ffeaea;color:#d00;}
@@ -757,7 +771,6 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
 <div class="screen active" id="s-ask">
   <div class="topbar-float">
     <div><div class="tb-title">The Message</div></div>
-    <button class="sync-pill-btn" id="syncPill" onclick="gConnect()">Connect Drive</button>
   </div>
   <div class="chat-wrap" id="chatWrap">
     <div class="msg ai">
@@ -769,6 +782,9 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
 
 <div class="ask-input-bar visible" id="askInputBar">
   <div class="cir">
+    <button class="settings-btn" id="settingsBtn" onclick="openSettingsModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+    </button>
     <textarea class="ci" id="chatInput" placeholder="Ask a question..." rows="1"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"
       oninput="autoResize(this)"></textarea>
@@ -1149,8 +1165,11 @@ let _t;
 function toast(msg){document.querySelector('.toast')?.remove();clearTimeout(_t);const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);_t=setTimeout(()=>t.remove(),2400);}
 function copyEl(id){navigator.clipboard.writeText(document.getElementById(id).textContent.trim()).then(()=>toast('Copied!')).catch(()=>toast('Failed to copy'));}
 
+function getApiKey() { return localStorage.getItem('tmsg_apikey') || ''; }
+
 async function claude(system, user, max=1000) {
-  const key = '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';
+  const key = getApiKey().trim();
+  if (!key) throw new Error('OpenRouter API key not set — go to Settings!');
   const content = system ? system + '\n\n' + user : user;
   let r;
   try {
@@ -1159,11 +1178,11 @@ async function claude(system, user, max=1000) {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + key,
-        'HTTP-Referer': 'https://the-message.app',
+        'HTTP-Referer': 'https://yoswic.github.io',
         'X-Title': 'The Message'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3-haiku',
+        model: 'openrouter/auto',
         max_tokens: max,
         messages: [{ role: 'user', content: content }]
       })
@@ -1827,7 +1846,7 @@ function gClearMeta() {
 
 function updateSyncPill(status) {
   var pill = document.getElementById('syncPill');
-  if (!pill) return;
+  if (!pill) { updateDriveStatusLabel(); return; }
   pill.className = 'sync-pill-btn';
   if (status === 'connected') {
     var name = gAuth.email ? gAuth.email.split('@')[0].toUpperCase() : 'SYNCED';
@@ -2064,8 +2083,71 @@ deleteNote = function(id) {
   _origDeleteNote(id);
   if (gAuth.connected) gSaveToDrive(false);
 };
+
+// ── SETTINGS MODAL ──
+function openSettingsModal() {
+  var overlay = document.getElementById('settingsOverlay');
+  var input = document.getElementById('apikeyInput');
+  var existing = getApiKey();
+  if (existing) input.value = existing;
+  updateDriveStatusLabel();
+  overlay.style.display = 'flex';
+}
+function closeSettingsModal() {
+  document.getElementById('settingsOverlay').style.display = 'none';
+}
+function updateDriveStatusLabel() {
+  var lbl = document.getElementById('driveStatusLabel');
+  if (lbl) {
+    if (gAuth.connected && gAuth.email) lbl.textContent = gAuth.email;
+    else if (gAuth.uid) lbl.textContent = 'Connecting...';
+    else lbl.textContent = 'Not connected';
+  }
+  var pill = document.getElementById('syncPill');
+  if (!pill) return;
+  pill.className = 'sync-pill-btn';
+  if (gAuth.connected) {
+    pill.textContent = 'Connected ✓'; pill.onclick = function(){ gManualSync(); };
+  } else if (gAuth.uid) {
+    pill.classList.add('syncing'); pill.textContent = 'Connecting...'; pill.onclick = null;
+  } else {
+    pill.textContent = 'Connect'; pill.onclick = gConnect;
+  }
+}
+function saveApiKey() {
+  var key = document.getElementById('apikeyInput').value.trim();
+  if (!key) { toast('Paste your API key first'); return; }
+  localStorage.setItem('tmsg_apikey', key);
+  toast('API key saved!');
+}
+document.addEventListener('DOMContentLoaded', function(){ updateDriveStatusLabel(); });
+
 if('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./message-sw.js').catch(()=>{});
 }
 </script>
+
+<!-- ── SETTINGS MODAL ── -->
+<div class="apikey-modal-overlay" id="settingsOverlay" style="display:none;" onclick="if(event.target===this)closeSettingsModal()">
+  <div class="apikey-modal">
+    <div class="apikey-modal-title">Settings</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--t1);">Google Drive</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px;" id="driveStatusLabel">Not connected</div>
+      </div>
+      <button class="sync-pill-btn" id="syncPill" onclick="gConnect()">Connect</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;padding:14px 0;">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--t1);">OpenRouter API Key</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px;">Free at openrouter.ai — starts with sk-or-v1-</div>
+      </div>
+      <input class="apikey-input" id="apikeyInput" type="password" placeholder="sk-or-v1-..." autocomplete="off" spellcheck="false"/>
+      <button class="apikey-save-btn" onclick="saveApiKey()">Save Key</button>
+    </div>
+    <button class="apikey-cancel-btn" onclick="closeSettingsModal()">Close</button>
+  </div>
+</div>
+
 </html>
