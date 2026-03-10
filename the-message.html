@@ -43,8 +43,8 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
   backdrop-filter:blur(40px) saturate(1.6);
   -webkit-backdrop-filter:blur(40px) saturate(1.6);
   background:rgba(255,255,255,0.75);
-  -webkit-mask-image:linear-gradient(to bottom, black 60%, transparent 82%);
-  mask-image:linear-gradient(to bottom, black 60%, transparent 82%);
+  -webkit-mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
+  mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
   padding:calc(14px + var(--safe-top)) 20px 14px;
   display:flex;align-items:center;justify-content:space-between;
   pointer-events:none;border:none;
@@ -193,6 +193,8 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
   background:rgba(255,255,255,0.75);
   -webkit-mask-image:linear-gradient(to bottom, black 60%, transparent 82%);
   mask-image:linear-gradient(to bottom, black 60%, transparent 82%);
+  -webkit-mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
+  mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
   display:none;pointer-events:none;
 }
 #s-translate.active #transFloatHeader{display:flex;align-items:center;justify-content:space-between;pointer-events:auto;}
@@ -361,6 +363,8 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
   background:rgba(255,255,255,0.75);
   -webkit-mask-image:linear-gradient(to bottom, black 60%, transparent 82%);
   mask-image:linear-gradient(to bottom, black 60%, transparent 82%);
+  -webkit-mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
+  mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
   display:none;pointer-events:none;
 }
 #s-quote.active #quoteFloatHeader{display:flex;align-items:center;justify-content:space-between;pointer-events:auto;}
@@ -543,6 +547,8 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
   background:rgba(255,255,255,0.75);
   -webkit-mask-image:linear-gradient(to bottom, black 60%, transparent 82%);
   mask-image:linear-gradient(to bottom, black 60%, transparent 82%);
+  -webkit-mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
+  mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
   display:none;pointer-events:none;
 }
 #s-learn.active #learnFloatHeader{display:flex;align-items:center;justify-content:space-between;pointer-events:auto;}
@@ -1183,7 +1189,7 @@ async function claude(system, user, max=1000) {
         'X-Title': 'The Message'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
+        model: 'mistralai/mistral-small-3.1-24b-instruct:free',
         max_tokens: max,
         messages: [{ role: 'user', content: content }]
       })
@@ -1973,14 +1979,12 @@ var verses = [
   {ref:'Revelation 22:13',text:'I am the Alpha and the Omega, the First and the Last, the Beginning and the End.'},
 ];
 
-// Shuffle: pick next verse without repeating until all shown, then reset (yearly cycle)
 function getNextVerse() {
   var total = verses.length;
   var queueKey = 'tmsg_verse_queue';
   var queue;
   try { queue = JSON.parse(localStorage.getItem(queueKey) || 'null'); } catch(e) { queue = null; }
   if (!queue || !Array.isArray(queue) || queue.length === 0) {
-    // Build shuffled index array
     var idx = [];
     for (var i = 0; i < total; i++) idx.push(i);
     for (var i = total - 1; i > 0; i--) {
