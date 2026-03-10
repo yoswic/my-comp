@@ -2136,17 +2136,21 @@ async function loadLesson(){
   document.getElementById('learnRef').textContent=pick.ref;
   document.getElementById('learnInsight').innerHTML='<div style="display:flex;gap:8px;align-items:center;color:var(--t3);font-size:13px;"><div class="spinner"></div> Loading devotion...</div>';
   try{
-    const prompt=`You are a Bible devotion guide. For the verse below, respond with ONLY a raw JSON object — no markdown, no explanation, no text before or after.
+    const prompt=`You are a Bible devotion writer. Respond ONLY with a valid JSON object. No markdown, no code blocks, no extra text. Use double quotes only. Escape any apostrophes inside strings as \\'.
 
-Verse: ${pick.ref} — ${pick.text}
+Verse: ${pick.ref} - ${pick.text}
 
-JSON format:
-{"devotion":"3-4 sentence devotional paragraph, deep and personal","reflection":["Question 1","Question 2","Question 3"],"context":"Short paragraph about historical and cultural context"}`;
+Respond exactly in this format:
+{"devotion":"Write 3-4 sentences of deep personal devotion here","reflection":["Reflection question 1?","Reflection question 2?","Reflection question 3?"],"context":"Write 1-2 sentences of historical context here"}`;
     const reply=await claude('', prompt, 1000);
-    const clean=reply.replace(/```json|```/g,'').trim();
+    // Robust JSON extraction and sanitization
+    let clean=reply.replace(/```json|```/g,'').trim();
     const start=clean.indexOf('{');
     const end=clean.lastIndexOf('}');
-    learnData=JSON.parse(clean.slice(start,end+1));
+    clean=clean.slice(start,end+1);
+    // Fix common issues: smart quotes, unescaped apostrophes in values
+    clean=clean.replace(/[‘’]/g,"'").replace(/[“”]/g,'"');
+    learnData=JSON.parse(clean);
     showTab(learnTab);
   }catch(e){
     document.getElementById('learnInsight').innerHTML='<div style="color:var(--t3);font-size:13px;">Error: '+e.message+' — <span onclick="learnLoaded=false;loadLesson()" style="color:#111;font-weight:700;cursor:pointer;text-decoration:underline;">Try again</span></div>';
