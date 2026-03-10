@@ -1,0 +1,2071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>The Message — Logos</title>
+<meta name="theme-color" content="#111111">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Logos">
+<link rel="manifest" href="./logos-manifest.json">
+<link rel="apple-touch-icon" href="./logos-icon-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --accent: #111;
+  --t1: #111;
+  --t2: #666;
+  --t3: #bbb;
+  --border: #e8e8e8;
+  --sans: 'Inter', sans-serif;
+  --syne: 'Syne', sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;}
+input,select,textarea,button{font-family:var(--sans);font-weight:500;box-sizing:border-box;}
+input,select,textarea{user-select:text;-webkit-user-select:text;}
+
+body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;color:var(--t1);overflow-x:hidden;font-size:15px;}
+
+/* remove blob bg */
+.bg-wrap{display:none;}
+
+#app{position:relative;z-index:1;max-width:460px;margin:0 auto;min-height:100vh;}
+
+/* ─── GLOBAL TOPBAR — blur melting ─── */
+.topbar-float{
+  position:sticky;top:0;z-index:300;
+  backdrop-filter:blur(40px) saturate(1.6);
+  -webkit-backdrop-filter:blur(40px) saturate(1.6);
+  background:rgba(255,255,255,0.75);
+  -webkit-mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
+  mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
+  padding:calc(18px + var(--safe-top)) 20px 22px;
+  display:flex;align-items:center;justify-content:space-between;
+  pointer-events:none;border:none;
+}
+.topbar-float>*{pointer-events:auto;}
+.tb-title{
+  font-family:var(--syne);font-weight:800;font-size:16px;
+  letter-spacing:.04em;color:var(--t1);text-transform:uppercase;
+}
+
+/* ─── SCREENS ─── */
+.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:calc(80px + var(--safe-bottom));}
+.screen.active{display:flex;}
+
+/* ─── ASK SCREEN ─── */
+#s-ask{background:#fff;}
+.chat-wrap{flex:1;display:flex;flex-direction:column;padding:16px 20px 10px;gap:12px;overflow-y:auto;}
+.msg{display:flex;flex-direction:column;gap:3px;}
+.msg.user{align-items:flex-end;}
+.msg.ai{align-items:flex-start;}
+.msg-bubble{max-width:85%;padding:12px 16px;font-size:14px;line-height:1.6;font-family:var(--sans);}
+.msg-bubble.long{border-radius:0;}
+.msg.user .msg-bubble{background:#111;color:#fff;border-radius:14px 14px 2px 14px;}
+.msg.ai .msg-bubble{background:#f5f5f5;color:var(--t1);border-radius:14px 14px 14px 2px;}
+.msg-label{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);padding:0 4px;}
+
+/* floating ask input */
+.ask-input-bar{
+  position:fixed;bottom:calc(80px + var(--safe-bottom) + 10px);
+  left:50%;transform:translateX(-50%);
+  width:min(460px,100%);z-index:250;padding:0 16px;display:none;
+}
+.ask-input-bar.visible{display:block;}
+.cir{display:flex;gap:8px;align-items:flex-end;}
+.ci{
+  flex:1;background:rgba(255,255,255,0.85);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.92);
+  border-radius:999px;font-size:14px;font-family:var(--sans);
+  padding:11px 18px;color:var(--t1);outline:none;resize:none;
+  min-height:44px;max-height:120px;line-height:1.4;
+  box-shadow:0 2px 10px rgba(0,0,0,0.06);
+  transition:border-color .2s;
+}
+.ci:focus{border-color:rgba(0,0,0,0.3);}
+.ci::placeholder{color:var(--t3);}
+.sbtn{
+  width:44px;height:44px;border-radius:50%;
+  background:#111;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  box-shadow:0 2px 10px rgba(0,0,0,0.22);
+}
+.sbtn svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+/* thinking dots */
+.thinking{display:flex;align-items:center;gap:5px;padding:10px 16px;}
+.td{width:6px;height:6px;border-radius:50%;background:#aaa;animation:tdot 1.2s infinite ease-in-out;}
+.td:nth-child(2){animation-delay:.2s;}.td:nth-child(3){animation-delay:.4s;}
+@keyframes tdot{0%,100%{transform:translateY(0);opacity:.3;}50%{transform:translateY(-5px);opacity:.8;}}
+
+/* ─── NAV — glassmorphism floating pill ─── */
+.nav{
+  position:fixed;bottom:calc(16px + var(--safe-bottom));
+  left:50%;transform:translateX(-50%);
+  z-index:200;width:min(430px,calc(100% - 24px));height:54px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.70);
+  backdrop-filter:blur(32px) saturate(180%) brightness(1.04);
+  -webkit-backdrop-filter:blur(32px) saturate(180%) brightness(1.04);
+  border:1px solid rgba(255,255,255,0.9);
+  box-shadow:0 4px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95);
+  overflow:hidden;
+}
+.nav-inner{display:flex;align-items:center;height:54px;padding:5px 10px;}
+.nbtn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border:none;background:none;color:rgba(0,0,0,0.25);cursor:pointer;
+  padding:0;height:44px;flex:1;gap:2px;
+  position:relative;transition:color .18s;
+}
+.nbtn .nl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;}
+.nbtn.on{color:rgba(0,0,0,0.85);}
+.nbtn.on::after{
+  content:'';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);
+  width:20px;height:2.5px;border-radius:2px;background:#111;
+}
+
+/* ─── TOAST / SPINNER ─── */
+.sync-pill-btn{padding:5px 12px;border-radius:999px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);transition:all .18s;white-space:nowrap;}
+.sync-pill-btn.syncing{background:rgba(0,0,0,0.06);color:var(--t3);}
+.sync-pill-btn.error{background:#ffeaea;color:#d00;}
+
+.spinner{width:16px;height:16px;border-radius:50%;border:2px solid #e0e0e0;border-top-color:#111;animation:spin .7s linear infinite;display:inline-block;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.toast{position:fixed;bottom:calc(80px + var(--safe-bottom) + 16px);left:50%;transform:translateX(-50%);background:rgba(17,17,17,0.9);color:#fff;padding:9px 20px;border-radius:999px;font-size:12.5px;font-weight:700;z-index:1000;pointer-events:none;white-space:nowrap;animation:toastIn .25s ease;}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
+::-webkit-scrollbar{width:0;height:0;}
+
+/* ─── COMPAT HIDES / OVERRIDES ─── */
+.bg-wrap{display:none;}
+.hdr-spacer{display:none;}
+.abtn{width:100%;padding:16px;border-radius:999px;background:#111;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:800;color:#fff;letter-spacing:.04em;transition:opacity .15s;}
+.abtn:active{opacity:.75;}
+.abtn:disabled{opacity:.3;cursor:not-allowed;}
+.tc{padding:7px 14px;border-radius:999px;background:rgba(0,0,0,0.05);border:1.5px solid transparent;font-size:11px;font-weight:700;color:var(--t2);cursor:pointer;transition:all .18s;}
+.tc.on{background:#111;color:#fff;}
+.tone-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.tf{width:100%;background:none;border:none;outline:none;font-family:var(--sans);font-size:14px;color:var(--t1);resize:none;line-height:1.6;min-height:70px;}
+.tf::placeholder{color:var(--t3);}
+.copy-row{display:flex;justify-content:flex-end;margin-top:4px;}
+.cbtn{padding:6px 16px;border-radius:999px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;font-size:11px;font-weight:800;color:var(--t2);}
+
+/* ─── TRANSLATE SCREEN ─── */
+#s-translate{
+  display:none;flex-direction:column;
+  background:#fff;overflow:hidden;
+  height:100dvh;max-height:100dvh;
+  padding-bottom:0 !important;
+}
+#s-translate.active{display:flex;}
+
+/* Fixed header for translate — blur melting */
+#transFloatHeader{
+  position:fixed;top:0;
+  left:50%;transform:translateX(-50%);
+  width:min(460px,100%);z-index:500;
+  padding:calc(18px + var(--safe-top)) 20px 22px;
+  backdrop-filter:blur(40px) saturate(1.6);
+  -webkit-backdrop-filter:blur(40px) saturate(1.6);
+  background:rgba(255,255,255,0.75);
+  -webkit-mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
+  mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
+  display:none;pointer-events:none;
+}
+#s-translate.active #transFloatHeader{display:flex;align-items:center;justify-content:space-between;pointer-events:auto;}
+
+/* Snap container */
+.trans-wrap{flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;height:0;}
+.trans-wrap::-webkit-scrollbar{display:none;}
+.trans-page{scroll-snap-align:start;scroll-snap-stop:always;height:100dvh;min-height:100dvh;max-height:100dvh;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;box-sizing:border-box;}
+
+/* TRANSLATE PAGE 1 — editorial input */
+.trans-page1{background:#fff;}
+.trans-p1-body{
+  flex:1;display:flex;flex-direction:column;
+  padding:calc(var(--safe-top) + 68px) 0 0;
+  min-height:0;
+}
+
+/* Big label section — Swiss style */
+.trans-hero-label{
+  padding:28px 24px 20px;
+  display:flex;align-items:baseline;justify-content:space-between;
+  flex-shrink:0;
+}
+.trans-hero-title{
+  font-family:var(--syne);font-size:clamp(32px,8vw,48px);
+  font-weight:800;color:#111;line-height:1;letter-spacing:-1.5px;
+}
+.trans-hero-meta{
+  display:flex;flex-direction:column;align-items:flex-end;gap:2px;
+}
+.trans-hero-tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--t3);}
+.trans-hero-num{font-size:9px;font-weight:700;color:var(--t3);}
+
+/* Tone row */
+.trans-tone-section{
+  padding:4px 24px 20px;flex-shrink:0;
+}
+.trans-section-label{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--t3);margin-bottom:10px;}
+.trans-tone-row{display:flex;gap:6px;flex-wrap:wrap;}
+.ttc{
+  padding:7px 14px;border-radius:999px;
+  background:rgba(0,0,0,0.05);border:1.5px solid transparent;
+  font-size:11px;font-weight:700;color:var(--t2);
+  cursor:pointer;transition:all .18s;font-family:var(--sans);
+}
+.ttc.on{background:#111;color:#fff;}
+
+/* Input area */
+.trans-input-section{
+  flex:1;min-height:0;display:flex;flex-direction:column;
+  padding:0 24px 0;
+}
+.trans-input-card{
+  flex:1;min-height:0;display:flex;flex-direction:column;
+}
+.trans-input-card-label{
+  font-size:8.5px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--t3);margin-bottom:10px;flex-shrink:0;
+}
+.trans-you-ta{
+  flex:1;width:100%;background:none;border:none;outline:none;
+  font-family:var(--syne);font-size:20px;font-weight:700;
+  color:#111;resize:none;line-height:1.45;min-height:0;
+  letter-spacing:-.3px;
+}
+.trans-you-ta::placeholder{color:#ddd;font-weight:600;}
+
+.trans-p1-footer{
+  flex-shrink:0;
+  padding:16px 24px calc(88px + var(--safe-bottom));
+}
+.trans-go-btn{
+  width:100%;padding:16px;
+  background:#111;border:none;border-radius:999px;cursor:pointer;
+  font-family:var(--sans);font-size:14px;font-weight:800;
+  color:#fff;letter-spacing:.03em;
+  box-shadow:0 3px 14px rgba(0,0,0,0.18);
+  transition:opacity .15s;
+}
+.trans-go-btn:active{opacity:.75;}
+.trans-go-btn:disabled{opacity:.3;}
+
+/* TRANSLATE PAGE 2 — result, editorial dark */
+.trans-page2{background:#111 !important;position:relative;}
+
+/* Grid lines texture */
+.trans-page2::before{
+  content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(
+    to right,
+    rgba(255,255,255,0.04) 0px,
+    rgba(255,255,255,0.04) 1px,
+    transparent 1px,
+    transparent calc(25% )
+  );
+  pointer-events:none;z-index:0;
+}
+
+.trans-p2-body{
+  flex:1;display:flex;flex-direction:column;
+  padding:calc(var(--safe-top) + 72px) 28px 20px;
+  min-height:0;position:relative;z-index:1;
+}
+.trans-p2-top-row{
+  display:flex;justify-content:space-between;align-items:baseline;
+  border-bottom:1px solid rgba(255,255,255,0.12);
+  padding-bottom:12px;margin-bottom:20px;flex-shrink:0;
+}
+.trans-result-tone{
+  font-size:9px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.14em;color:rgba(255,255,255,0.3);
+}
+.trans-p2-num{
+  font-size:9px;font-weight:700;color:rgba(255,255,255,0.2);
+}
+.trans-result-text{
+  font-family:var(--syne);
+  font-size:var(--tfont, clamp(30px,8vw,44px));
+  font-weight:800;color:#fff;
+  line-height:1.15;letter-spacing:-1px;
+  flex:1;overflow:hidden;
+}
+.trans-result-text.loading{
+  color:rgba(255,255,255,0.2);
+  font-size:18px;font-weight:600;letter-spacing:0;font-family:var(--sans);
+}
+.trans-p2-footer{
+  flex-shrink:0;
+  padding:16px 28px calc(80px + var(--safe-bottom));
+  background:#111;position:relative;z-index:1;
+  border-top:1px solid rgba(255,255,255,0.1);
+}
+.trans-copy-btn{
+  width:100%;padding:16px;border-radius:999px;
+  background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
+  cursor:pointer;font-family:var(--sans);font-size:14px;font-weight:800;
+  color:#fff;letter-spacing:.03em;transition:opacity .15s;
+}
+.trans-copy-btn:active{opacity:.7;}
+
+/* compat hides */
+.trans-hero{display:none !important;}.trans-hero-bg{display:none !important;}
+#transHeroContent{display:none !important;}.trans-tone-bar{display:none !important;}
+.trans-tone-label{display:none !important;}.trans-go-btn-old{display:none !important;}
+.trans-result-card{display:none !important;}.trans-result-inner{display:none !important;}
+.trans-panel{display:none !important;}.trans-divider{display:none !important;}
+.trans-tone-section-old{display:none !important;}.trans-input-wrap{display:none !important;}
+.cbtn{display:none !important;}.trans-result-wrap{display:none !important;}
+
+/* ─── QUOTE SCREEN ─── */
+#s-quote{
+  display:none;flex-direction:column;
+  background:#fff;overflow:hidden;
+  height:100dvh;max-height:100dvh;
+  padding-bottom:0 !important;
+}
+#s-quote.active{display:flex;}
+
+#quoteFloatHeader{
+  position:fixed;top:0;
+  left:50%;transform:translateX(-50%);
+  width:min(460px,100%);z-index:500;
+  padding:calc(18px + var(--safe-top)) 20px 22px;
+  backdrop-filter:blur(40px) saturate(1.6);
+  -webkit-backdrop-filter:blur(40px) saturate(1.6);
+  background:rgba(255,255,255,0.75);
+  -webkit-mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
+  mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
+  display:none;pointer-events:none;
+}
+#s-quote.active #quoteFloatHeader{display:flex;align-items:center;justify-content:space-between;pointer-events:auto;}
+
+.quote-snap-wrap{flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;height:0;}
+.quote-snap-wrap::-webkit-scrollbar{display:none;}
+.quote-snap-page{scroll-snap-align:start;scroll-snap-stop:always;height:100dvh;min-height:100dvh;max-height:100dvh;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;box-sizing:border-box;}
+
+/* QUOTE PAGE 1 — editorial white */
+.qp1{background:#fff;}
+.qp1-body{
+  flex:1;display:flex;flex-direction:column;
+  padding:calc(var(--safe-top) + 68px) 0 0;
+  min-height:0;
+}
+
+/* Big hero section */
+.qp1-hero{
+  flex-shrink:0;
+  padding:24px 24px 20px;
+  
+  position:relative;
+}
+.qp1-hero-plusrow{
+  display:flex;justify-content:space-between;
+  margin-bottom:20px;
+}
+.qp1-hero-plus{
+  font-size:16px;color:#ccc;font-weight:400;line-height:1;
+}
+.qp1-hero-title{
+  font-family:var(--syne);
+  font-size:clamp(32px,8vw,46px);
+  font-weight:800;color:#111;
+  line-height:1;letter-spacing:-1.5px;
+  margin-bottom:6px;
+}
+.qp1-hero-sub{
+  font-size:11px;font-weight:500;color:var(--t3);
+  line-height:1.4;
+}
+
+/* Controls */
+.qp1-controls{
+  flex:1;min-height:0;
+  display:flex;flex-direction:column;
+}
+.qp1-prompt-label{
+  font-size:8.5px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--t3);
+}
+.qp1-tone-section{
+  padding:4px 24px 20px;flex-shrink:0;
+}
+.qp1-tone-row{display:flex;gap:6px;flex-wrap:wrap;}
+.qtc2{
+  padding:7px 14px;border-radius:999px;
+  background:rgba(0,0,0,0.05);border:1.5px solid transparent;
+  font-size:11px;font-weight:700;color:var(--t2);
+  cursor:pointer;transition:all .18s;font-family:var(--sans);
+}
+.qtc2.on{background:#111;color:#fff;}
+
+.qp1-input-section{
+  flex:1;min-height:0;display:flex;flex-direction:column;
+  padding:0 24px 0;
+}
+.qp1-input-area{
+  flex:1;min-height:0;display:flex;flex-direction:column;
+}
+.qp1-input-sublabel{
+  font-size:8.5px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--t3);margin-bottom:10px;flex-shrink:0;
+}
+.qp1-ta{
+  flex:1;width:100%;background:none;border:none;outline:none;
+  font-family:var(--syne);font-size:20px;font-weight:700;
+  color:#111;resize:none;line-height:1.45;min-height:0;
+  letter-spacing:-.3px;direction:ltr;text-align:left;
+}
+.qp1-ta::placeholder{color:#ddd;font-weight:600;}
+.qp1-footer{
+  flex-shrink:0;
+  padding:16px 24px calc(88px + var(--safe-bottom));
+}
+.qp1-gen-btn{
+  width:100%;padding:16px;border-radius:999px;
+  background:#111;border:none;cursor:pointer;
+  font-family:var(--sans);font-size:14px;font-weight:800;
+  color:#fff;letter-spacing:.03em;
+  box-shadow:0 3px 14px rgba(0,0,0,0.18);
+  transition:opacity .15s;
+}
+.qp1-gen-btn:active{opacity:.75;}
+.qp1-gen-btn:disabled{opacity:.3;cursor:not-allowed;}
+
+/* QUOTE PAGE 2 — result, dark with grid lines */
+.qp2{background:#111;position:relative;overflow:hidden;}
+.qp2::before{
+  content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(
+    to right,
+    rgba(255,255,255,0.04) 0px,
+    rgba(255,255,255,0.04) 1px,
+    transparent 1px,
+    transparent 25%
+  );
+  pointer-events:none;z-index:0;
+}
+.qp2-body{
+  flex:1;display:flex;flex-direction:column;
+  padding:calc(var(--safe-top) + 72px) 28px 20px;
+  min-height:0;position:relative;z-index:1;
+}
+.qp2-top-row{
+  display:flex;justify-content:space-between;align-items:baseline;
+  border-bottom:1px solid rgba(255,255,255,0.12);
+  padding-bottom:12px;margin-bottom:20px;flex-shrink:0;
+}
+.qp2-tone-tag{
+  font-size:9px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.14em;color:rgba(255,255,255,0.3);
+}
+.qp2-page-num{font-size:9px;font-weight:700;color:rgba(255,255,255,0.2);}
+.qp2-quote-text{
+  font-family:var(--syne);
+  font-size:var(--qfont, clamp(28px,7vw,40px));
+  font-weight:800;color:#fff;
+  line-height:1.2;letter-spacing:-1px;
+  flex:1;overflow:hidden;
+}
+.qp2-quote-text.loading{
+  color:rgba(255,255,255,0.2);
+  font-size:18px;font-weight:600;letter-spacing:0;font-family:var(--sans);flex:none;
+}
+.qp2-source{
+  font-size:11px;font-weight:700;
+  color:rgba(255,255,255,0.3);
+  letter-spacing:.04em;margin-top:12px;flex-shrink:0;
+}
+.qp2-footer{
+  flex-shrink:0;
+  padding:16px 28px calc(80px + var(--safe-bottom));
+  display:flex;gap:8px;position:relative;z-index:1;
+  border-top:1px solid rgba(255,255,255,0.1);
+}
+.qp2-copy-btn,.qp2-new-btn{
+  flex:1;padding:15px;border-radius:999px;
+  background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
+  cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:800;
+  color:#fff;letter-spacing:.03em;transition:opacity .15s;
+}
+.qp2-copy-btn:active,.qp2-new-btn:active{opacity:.7;}
+
+/* Hide legacy quote elements */
+.quote-screen-wrap{display:none !important;}
+.q-input-card{display:none !important;}
+
+/* LEARN */
+.day-badge{background:var(--accent);padding:14px 22px 12px;border-radius:36px 36px 0 0;display:flex;justify-content:space-between;align-items:center;}
+.day-label{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45);}
+.day-num{font-size:32px;font-weight:900;color:#fff;line-height:1;}
+.lbody{padding:18px 22px;}
+.lverse{font-size:16px;font-weight:700;line-height:1.5;color:var(--t1);margin-bottom:10px;}
+.lref{font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;}
+.lil{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:8px;}
+.li{font-size:13.5px;line-height:1.7;color:var(--t2);}
+.ltabs{display:flex;gap:6px;}
+.ltab{flex:1;padding:9px;border-radius:999px;border:none;cursor:pointer;font-family:var(--sans);font-size:10px;font-weight:800;background:rgba(255,255,255,0.55);color:var(--t3);transition:all .18s;text-transform:uppercase;letter-spacing:.07em;}
+.ltab.on{background:var(--accent);color:#fff;}
+
+/* ── LEARN REDESIGN ── */
+#s-learn{overflow:hidden;display:none;flex-direction:column;height:100dvh;padding-bottom:0!important;background:#f5f5f5;}
+#learnFloatHeader{
+  position:fixed;top:0;left:50%;transform:translateX(-50%);
+  width:min(460px,100%);z-index:500;
+  padding:calc(18px + var(--safe-top)) 20px 22px;
+  backdrop-filter:blur(40px) saturate(1.6);
+  -webkit-backdrop-filter:blur(40px) saturate(1.6);
+  background:rgba(255,255,255,0.75);
+  -webkit-mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
+  mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
+  display:none;pointer-events:none;
+}
+#s-learn.active #learnFloatHeader{display:flex;align-items:center;justify-content:space-between;pointer-events:auto;}
+#learnFloatHeader .tb-title{font-family:var(--syne);font-weight:800;font-size:16px;letter-spacing:.04em;text-transform:uppercase;color:var(--t1);}
+#s-learn.active{display:flex;}
+.learn-snap-wrap{flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;height:0;}
+.learn-snap-wrap::-webkit-scrollbar{display:none;}
+.learn-snap-page{scroll-snap-align:start;scroll-snap-stop:always;height:100dvh;min-height:100dvh;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;box-sizing:border-box;}
+.learn-page1{background:#f5f5f5;display:flex;flex-direction:column;}
+.learn-page2{background:#f5f5f5;}
+
+/* Calendar page */
+.learn-cal-body{
+  flex:1;overflow:hidden;
+  padding:calc(var(--safe-top) + 60px) 16px calc(80px + var(--safe-bottom));
+  display:flex;flex-direction:column;gap:12px;
+}
+.learn-cal-card{
+  background:#fff;border-radius:16px;
+  padding:18px 16px 12px;
+  border:1px solid var(--border);
+  flex-shrink:0;
+}
+.learn-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.learn-cal-month-label{font-family:var(--syne);font-size:18px;font-weight:800;color:#111;letter-spacing:-.3px;}
+.learn-cal-nav{background:none;border:none;font-size:20px;color:#bbb;cursor:pointer;padding:2px 10px;font-family:var(--sans);}
+.learn-cal-days-row{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:4px;}
+.learn-cal-days-row span{font-size:9px;font-weight:700;color:#ccc;text-transform:uppercase;padding:2px 0;letter-spacing:.06em;}
+.learn-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;}
+.cal-day{
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;font-size:13px;font-weight:600;color:#333;
+  cursor:pointer;transition:all .15s;position:relative;
+  background:none;border:none;font-family:var(--sans);
+}
+.cal-day:hover{background:#f5f5f5;}
+.cal-day.today{background:#111;color:#fff;font-weight:800;}
+.cal-day.selected{background:#333;color:#fff;}
+.cal-day.has-note::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#111;}
+.cal-day.today.has-note::after{background:#fff;}
+.cal-day.other-month{color:#ddd;}
+.cal-day.empty{cursor:default;}
+.cal-bottom-row{display:flex;gap:12px;flex-shrink:0;}
+.cal-stat-card{
+  flex:1;background:#fff;border-radius:16px;
+  padding:16px 18px;
+  display:flex;flex-direction:column;gap:2px;
+}
+.cal-stat-label{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--t3);}
+.cal-stat-num{font-family:var(--syne);font-size:36px;font-weight:800;color:#111;line-height:1;}
+.cal-stat-sub{font-size:10px;font-weight:600;color:var(--t3);}
+
+.cal-pattern-wrap{flex:1;min-height:0;overflow:hidden;border-radius:22px;}
+.cal-verse-display{
+  width:100%;height:100%;
+  background:#111;border-radius:22px;
+  display:flex;align-items:center;justify-content:center;
+  padding:24px 22px;position:relative;overflow:hidden;
+}
+.cal-verse-display::before{
+  content:'';position:absolute;
+  top:-60px;right:-60px;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,0.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.cal-verse-display-inner{
+  display:flex;flex-direction:column;gap:12px;
+  position:relative;z-index:1;
+}
+.cal-verse-display-mark{
+  font-size:48px;line-height:.8;
+  color:rgba(255,255,255,0.15);
+  font-family:Georgia,serif;
+  display:block;margin-bottom:4px;
+}
+.cal-verse-display-text{
+  font-family:var(--syne);
+  font-size:clamp(18px,5vw,26px);
+  font-weight:800;color:#fff;
+  line-height:1.25;letter-spacing:-.5px;
+}
+.cal-verse-display-ref{
+  font-size:9px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.14em;color:rgba(255,255,255,0.35);
+}
+.learn-cal-verse-card{
+  background:#fff;border-radius:16px;padding:16px 18px;
+  border:1px solid var(--border);flex-shrink:0;
+}
+.learn-cal-verse-ref{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--t3);margin-bottom:8px;}
+.learn-cal-verse-text{font-size:14px;font-weight:500;color:#222;line-height:1.6;font-style:italic;}
+
+/* Journal modal */
+.journal-paper{
+  position:relative;z-index:1;
+  background:#fff;border-radius:16px;
+  width:100%;max-width:380px;
+  padding:24px;
+  border:1px solid var(--border);
+  box-shadow:0 20px 60px rgba(0,0,0,0.15);
+  display:flex;flex-direction:column;gap:12px;
+  max-height:80vh;
+}
+.journal-date{font-family:var(--syne);font-size:22px;font-weight:800;color:#111;}
+.journal-verse-mini{font-size:12px;color:var(--t3);font-style:italic;line-height:1.5;border-left:2px solid var(--border);padding-left:10px;}
+.journal-ta{flex:1;border:1px solid var(--border);outline:none;resize:none;font-family:var(--sans);font-size:14px;color:#111;line-height:1.7;min-height:120px;background:#f9f9f9;border-radius:8px;padding:12px;direction:ltr;}
+.journal-ta::placeholder{color:var(--t3);}
+.journal-footer{display:flex;gap:8px;justify-content:flex-end;}
+.journal-save{padding:10px 20px;border-radius:999px;background:#111;color:#fff;border:none;cursor:pointer;font-family:var(--sans);font-size:12px;font-weight:800;}
+.journal-close{padding:10px 20px;border-radius:999px;background:#f2f2f2;color:var(--t2);border:none;cursor:pointer;font-family:var(--sans);font-size:12px;font-weight:800;}
+.journal-clear{padding:10px 20px;border-radius:999px;background:#f2f2f2;color:var(--t3);border:none;cursor:pointer;font-family:var(--sans);font-size:12px;font-weight:800;}
+
+/* Learn page 1 — devotion */
+.learn-wrap{display:flex;flex-direction:column;gap:0;padding:0 0 calc(88px + var(--safe-bottom));padding-top:4px;flex:1;min-height:0;overflow-y:auto;}
+
+/* Hero card — rounded dark card */
+.learn-hero{
+  background:linear-gradient(135deg,#111 0%,#222 100%);
+  border-radius:28px;margin:0 16px;padding:22px 22px 20px;
+  position:relative;overflow:hidden;flex-shrink:0;
+}
+.learn-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:150px;height:150px;background:radial-gradient(circle,rgba(255,255,255,0.12) 0%,transparent 70%);border-radius:50%;}
+.learn-date-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
+.learn-date-badge{display:flex;align-items:baseline;gap:10px;}
+.learn-day-num{font-family:var(--syne);font-size:40px;font-weight:800;color:#fff;line-height:1;}
+.learn-day-meta{display:flex;flex-direction:column;gap:2px;}
+.learn-day-label{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,0.35);}
+.learn-month{font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);}
+.learn-verse-text{font-family:var(--syne);font-size:16px;font-weight:700;color:#fff;line-height:1.45;margin-bottom:8px;font-style:normal;}
+.learn-verse-ref{font-size:9px;font-weight:800;color:rgba(255,255,255,0.4);letter-spacing:.12em;text-transform:uppercase;}
+
+/* Tab row — pill style */
+.learn-tabs{display:flex;gap:6px;padding:14px 16px 0;flex-shrink:0;}
+.learn-tab{
+  flex:1;padding:10px 6px;border-radius:999px;border:none;cursor:pointer;
+  font-family:var(--sans);font-size:10px;font-weight:800;
+  background:rgba(255,255,255,0.55);color:var(--t3);
+  transition:all .2s;text-transform:uppercase;letter-spacing:.07em;
+}
+.learn-tab .lt-icon{display:none;}
+.learn-tab.on{background:#111;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.12);}
+
+/* Content card */
+.learn-content-card{margin:10px 16px 16px;background:#fff;border-radius:22px;padding:20px;box-shadow:0 2px 16px rgba(0,0,0,0.06);flex:1;min-height:120px;overflow-y:auto;}
+.learn-content-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--t3);margin-bottom:10px;}
+.learn-content-body{font-size:14px;color:var(--t1);line-height:1.75;font-weight:500;}
+.learn-rq{background:#f5f5f5;border-radius:14px;padding:14px 16px;margin-bottom:8px;font-size:13px;color:var(--t1);font-weight:500;line-height:1.55;border-left:3px solid #111;}
+
+/* Notes section */
+.learn-notes-section{margin:12px 16px 0;}
+.learn-notes-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--t3);margin-bottom:8px;padding:0 4px;}
+.learn-notes-card{background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.05);}
+.learn-notes-ta{width:100%;background:none;border:none;outline:none;font-family:var(--sans);font-size:13.5px;color:var(--t1);resize:none;line-height:1.7;min-height:90px;padding:16px 18px 8px;box-sizing:border-box;}
+.learn-notes-ta::placeholder{color:var(--t3);}
+.learn-notes-footer{display:flex;justify-content:flex-end;padding:8px 14px 14px;}
+.learn-save-btn{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:8px 20px;font-family:var(--sans);font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.04em;}
+
+/* Saved notes */
+.learn-saved-list{margin:10px 16px 0;display:flex;flex-direction:column;gap:8px;}
+.learn-note-item{background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 1px 8px rgba(0,0,0,0.05);}
+.learn-note-date{font-size:9px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+.learn-note-text{font-size:13px;color:var(--t1);line-height:1.6;}
+
+/* Reload btn */
+.learn-reload{margin:12px 16px 0;width:calc(100% - 32px);padding:14px;background:#f0f0f0;border:none;border-radius:16px;font-family:var(--sans);font-size:12px;font-weight:800;color:var(--t2);cursor:pointer;letter-spacing:.04em;transition:background .15s;}
+.rq{background:rgba(0,0,0,0.04);border-left:3px solid var(--accent);border-radius:0 999px 999px 0;padding:10px 18px;font-size:13.5px;line-height:1.6;color:var(--t2);margin-bottom:8px;}
+.notes-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 22px 8px;}
+.notes-ta{width:100%;background:none;border:none;outline:none;font-family:var(--sans);font-size:13.5px;color:var(--t1);resize:none;line-height:1.7;min-height:80px;padding:0 22px 16px;}
+.notes-ta::placeholder{color:var(--t3);}
+.nsbtn{padding:6px 16px;border-radius:999px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;transition:background .15s;}
+.nsbtn:active{background:rgba(0,0,0,0.12);}
+.genbtn{width:100%;padding:13px;border-radius:999px;background:rgba(0,0,0,0.04);border:1.5px dashed rgba(0,0,0,0.15);cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:800;color:var(--t2);letter-spacing:.03em;transition:all .18s;}
+.genbtn:active{background:rgba(0,0,0,0.08);}
+
+/* CHAT */
+.chat-wrap{flex:1;display:flex;flex-direction:column;padding:76px 14px 10px;gap:10px;overflow-y:auto;}
+.msg{display:flex;flex-direction:column;gap:4px;animation:msgIn .3s ease;}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.msg.user{align-items:flex-end;}
+.msg.ai{align-items:flex-start;}
+.msg-bubble{max-width:88%;padding:12px 18px;border-radius:999px;font-size:13.5px;line-height:1.55;font-family:"Helvetica Neue","Helvetica",Arial,sans-serif;}
+.msg-bubble.long{border-radius:30px;}
+.msg.user .msg-bubble{background:var(--accent);color:#fff;}
+.msg.ai .msg-bubble{background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.92);color:var(--t1);box-shadow:0 2px 10px rgba(0,0,0,0.05);}
+.msg-label{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);padding:0 6px;}
+.thinking{display:flex;align-items:center;gap:5px;padding:10px 18px;}
+.td{width:7px;height:7px;border-radius:50%;background:var(--t2);opacity:.4;animation:tdot 1.2s infinite ease-in-out;}
+.td:nth-child(2){animation-delay:.2s;}.td:nth-child(3){animation-delay:.4s;}
+@keyframes tdot{0%,100%{transform:translateY(0);opacity:.25;}50%{transform:translateY(-5px);opacity:.65;}}
+
+/* FLOATING ASK INPUT */
+.ask-input-bar{position:fixed;top:calc(var(--safe-top) + 66px);left:50%;transform:translateX(-50%);width:min(460px,100%);z-index:250;padding:0 14px;display:none;}
+.ask-input-bar.visible{display:block;}
+.cir{display:flex;gap:8px;align-items:flex-end;}
+.ci{flex:1;background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.92);border-radius:999px;font-size:13px;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;padding:11px 18px;font-size:14px;color:var(--t1);outline:none;resize:none;min-height:44px;max-height:120px;box-shadow:0 2px 10px rgba(0,0,0,0.06);transition:border-color .2s,box-shadow .2s;line-height:1.4;}
+.ci:focus{border-color:rgba(0,0,0,0.3);box-shadow:0 0 0 3px rgba(0,0,0,0.05),0 2px 10px rgba(0,0,0,0.06);}
+.ci::placeholder{color:var(--t3);}
+.sbtn{width:44px;height:44px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.22);transition:transform .15s;flex-shrink:0;}
+.sbtn:active{transform:scale(.93);}
+.sbtn svg{width:17px;height:17px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+/* NAV */
+.nav{position:fixed;bottom:calc(16px + var(--safe-bottom));left:50%;transform:translateX(-50%);z-index:200;width:min(430px,calc(100% - 24px));height:54px;border-radius:999px;background:rgba(255,255,255,0.70);backdrop-filter:var(--blur-mid);-webkit-backdrop-filter:var(--blur-mid);border:1px solid rgba(255,255,255,0.9);box-shadow:0 4px 20px rgba(0,0,0,0.08);overflow:hidden;}
+.nav-inner{display:flex;align-items:center;height:54px;padding:5px 10px;}
+.nbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;color:rgba(0,0,0,0.25);cursor:pointer;padding:0;height:44px;flex:1;border-radius:0;transition:color .18s;position:relative;}
+.nbtn .nl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;}
+.nbtn.on{color:rgba(0,0,0,0.85);}
+.nbtn.on::after{content:'';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:20px;height:2.5px;border-radius:2px;background:var(--accent);}
+
+.spinner{width:17px;height:17px;border-radius:50%;border:2.5px solid rgba(0,0,0,0.1);border-top-color:var(--accent);animation:spin .7s linear infinite;display:inline-block;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.toast{position:fixed;bottom:calc(80px + var(--safe-bottom) + 12px);left:50%;transform:translateX(-50%);background:rgba(17,17,17,0.9);color:#fff;padding:9px 20px;border-radius:999px;font-size:12.5px;font-weight:700;z-index:1000;pointer-events:none;white-space:nowrap;animation:toastIn .25s ease;}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
+::-webkit-scrollbar{width:0;height:0;}
+</style>
+</head>
+<body>
+<div class="bg-wrap">
+  <div class="blob"></div><div class="blob"></div><div class="blob"></div>
+</div>
+<div id="app">
+
+<!-- ══ ASK ══ -->
+<div class="screen active" id="s-ask">
+  <div class="topbar-float">
+    <div><div class="tb-title">The Message</div></div>
+    <button class="sync-pill-btn" id="syncPill" onclick="gConnect()">Connect Drive</button>
+  </div>
+  <div class="chat-wrap" id="chatWrap">
+    <div class="msg ai">
+      <div class="msg-label">Logos</div>
+      <div class="msg-bubble long">Hello! I am here to help you understand God's Word. Ask me about a verse's meaning, the cultural context of biblical times, theological interpretation, or anything on your heart.</div>
+    </div>
+  </div>
+</div>
+
+<div class="ask-input-bar visible" id="askInputBar">
+  <div class="cir">
+    <textarea class="ci" id="chatInput" placeholder="Ask a question..." rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"
+      oninput="autoResize(this)"></textarea>
+    <button class="sbtn" onclick="sendChat()">
+      <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ══ TRANSLATE ══ -->
+<div class="screen" id="s-translate">
+
+  <!-- Fixed header -->
+  <div id="transFloatHeader">
+    <div class="tb-title" id="transHeaderTitle">The Message</div>
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);">Translate</div>
+  </div>
+
+  <div class="trans-wrap" id="transWrap">
+
+    <!-- PAGE 1: editorial input -->
+    <div class="trans-page trans-page1">
+      <div class="trans-p1-body">
+
+        <!-- Big editorial title -->
+        <div class="trans-hero-label">
+          <div class="trans-hero-title">Translate.</div>
+          <div class="trans-hero-meta">
+            <span class="trans-hero-tag">The Message</span>
+            <span class="trans-hero-num">01 / 02</span>
+          </div>
+        </div>
+
+        <!-- Tone selection -->
+        <div class="trans-tone-section">
+          <div class="trans-section-label">Tone</div>
+          <div class="trans-tone-row">
+            <div class="ttc on" onclick="selTTone(this)" data-tone="Youthful">Youthful</div>
+            <div class="ttc" onclick="selTTone(this)" data-tone="Reflective">Reflective</div>
+            <div class="ttc" onclick="selTTone(this)" data-tone="Formal">Formal</div>
+            <div class="ttc" onclick="selTTone(this)" data-tone="Poetic">Poetic</div>
+            <div class="ttc" onclick="selTTone(this)" data-tone="Devotional">Devotional</div>
+            <div class="ttc" onclick="selTTone(this)" data-tone="Simple">Simple</div>
+          </div>
+        </div>
+
+        <!-- Input -->
+        <div class="trans-input-section">
+          <div class="trans-input-card">
+            <div class="trans-input-card-label">Your Text</div>
+            <textarea class="trans-you-ta" id="transInput" dir="ltr" placeholder="Write here..." rows="3"></textarea>
+          </div>
+        </div>
+
+      </div>
+      <div class="trans-p1-footer">
+        <button class="trans-go-btn" id="transBtn" onclick="doTranslate()">Translate →</button>
+      </div>
+    </div>
+
+    <!-- PAGE 2: result dark -->
+    <div class="trans-page trans-page2" id="transPage2">
+      <div class="trans-p2-body">
+        <div class="trans-p2-top-row">
+          <div class="trans-result-tone" id="transResultTone">Youthful</div>
+          <div class="trans-p2-num">02 / 02</div>
+        </div>
+        <div class="trans-result-text loading" id="transResult">Translating...</div>
+      </div>
+      <div class="trans-p2-footer">
+        <button class="trans-copy-btn" id="transCopyBtn" onclick="copyEl('transResult')">Copy Text</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ QUOTE ══ -->
+<div class="screen" id="s-quote">
+
+  <!-- Fixed header -->
+  <div id="quoteFloatHeader">
+    <div class="tb-title" id="quoteHeaderTitle">The Message</div>
+  </div>
+
+  <div class="quote-snap-wrap" id="quoteSnapWrap">
+
+    <!-- PAGE 1: input -->
+    <div class="quote-snap-page qp1">
+      <div class="qp1-body">
+
+        <!-- Hero title -->
+        <div class="qp1-hero">
+          <div class="qp1-hero-plusrow">
+            <span class="qp1-hero-plus">+</span>
+            <span class="qp1-hero-plus">+</span>
+          </div>
+          <div class="qp1-hero-title">Generate<br>a Quote.</div>
+          <div class="qp1-hero-sub">Turn your verse or thought into something shareable.</div>
+        </div>
+
+        <!-- Controls -->
+        <div class="qp1-controls">
+          <!-- Tone -->
+          <div class="qp1-tone-section">
+            <div class="qp1-prompt-label" style="margin-bottom:10px;">Tone</div>
+            <div class="qp1-tone-row">
+              <div class="qtc2 on" onclick="selQTone2(this)" data-tone="Youthful">Youthful</div>
+              <div class="qtc2" onclick="selQTone2(this)" data-tone="Reflective">Reflective</div>
+              <div class="qtc2" onclick="selQTone2(this)" data-tone="Prophetic">Prophetic</div>
+              <div class="qtc2" onclick="selQTone2(this)" data-tone="Gentle">Gentle</div>
+              <div class="qtc2" onclick="selQTone2(this)" data-tone="Bold">Bold</div>
+              <div class="qtc2" onclick="selQTone2(this)" data-tone="Poetic">Poetic</div>
+            </div>
+          </div>
+          <!-- Input -->
+          <div class="qp1-input-section">
+            <div class="qp1-input-area">
+              <div class="qp1-input-sublabel">Your Verse or Thought</div>
+              <textarea class="qp1-ta" id="quoteInput2" placeholder="Write here..." rows="3" dir="ltr"></textarea>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="qp1-footer">
+        <button class="qp1-gen-btn" id="quoteBtn2" onclick="doQuote2()">Generate →</button>
+      </div>
+    </div>
+
+    <!-- PAGE 2: result -->
+    <div class="quote-snap-page qp2" id="quotePage2">
+      <div class="qp2-body">
+        <div class="qp2-top-row">
+          <div class="qp2-tone-tag" id="quoteToneTag">Youthful</div>
+          <div class="qp2-page-num">02 / 02</div>
+        </div>
+        <div class="qp2-quote-text loading" id="quoteResult2">Generating...</div>
+        <div class="qp2-source" id="quoteSource2"></div>
+      </div>
+      <div class="qp2-footer">
+        <button class="qp2-new-btn" onclick="quoteGoBack()">← New</button>
+        <button class="qp2-copy-btn" onclick="copyEl('quoteResult2')">Copy</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ LEARN ══ -->
+<div class="screen" id="s-learn">
+  <div id="learnFloatHeader">
+    <div class="tb-title">The Message</div>
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);">Learn</div>
+  </div>
+  <div class="learn-snap-wrap" id="learnSnapWrap">
+
+    <!-- PAGE 1: verse + devotion/reflect/context -->
+    <div class="learn-snap-page learn-page1">
+      <div style="height:calc(var(--safe-top) + 52px);flex-shrink:0;"></div>
+      <div class="learn-wrap">
+
+
+    <!-- Hero card: verse -->
+    <div class="learn-hero">
+      <div class="learn-date-row">
+        <div class="learn-date-badge">
+          <div class="learn-day-num" id="learnDate">—</div>
+          <div class="learn-day-meta">
+            <span class="learn-day-label">Today</span>
+            <span class="learn-month" id="learnBook"></span>
+          </div>
+        </div>
+        <div class="spinner" id="learnSpinner"></div>
+      </div>
+      <div class="learn-verse-text" id="learnVerse">Loading today's verse...</div>
+      <div class="learn-verse-ref" id="learnRef"></div>
+    </div>
+
+    <!-- Tab row -->
+    <div class="learn-tabs">
+      <button class="learn-tab on" onclick="switchLearnTab(this,'verse')">
+        Devotion
+      </button>
+      <button class="learn-tab" onclick="switchLearnTab(this,'reflection')">
+        Reflect
+      </button>
+      <button class="learn-tab" onclick="switchLearnTab(this,'context')">
+        Context
+      </button>
+    </div>
+
+    <!-- Content card -->
+    <div class="learn-content-card">
+      <div class="learn-content-label" id="learnInsightLabel">Devotion</div>
+      <div class="learn-content-body" id="learnInsight">
+        <div style="display:flex;gap:8px;align-items:center;color:var(--t3);font-size:13px;"><div class="spinner"></div> Preparing your devotion...</div>
+      </div>
+    </div>
+      </div>
+    </div>
+
+    <!-- PAGE 2: calendar + journal -->
+    <div class="learn-snap-page learn-page2" id="learnCalPage">
+      <div class="learn-cal-body">
+
+        <!-- Calendar card: month header + grid -->
+        <div class="learn-cal-card">
+
+          <!-- Month header -->
+          <div class="learn-cal-header">
+            <button class="learn-cal-nav" onclick="calPrevMonth()">‹</button>
+            <div class="learn-cal-month-label" id="calMonthLabel">March 2026</div>
+            <button class="learn-cal-nav" onclick="calNextMonth()">›</button>
+          </div>
+
+          <!-- Day labels -->
+          <div class="learn-cal-days-row">
+            <span>Mo</span><span>Tu</span><span>We</span>
+            <span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+          </div>
+
+          <!-- Calendar grid -->
+          <div class="learn-cal-grid" id="calGrid"></div>
+
+        </div><!-- end learn-cal-card -->
+
+        <!-- Tap a day to journal — bottom two cards -->
+        <div class="cal-bottom-row">
+          <!-- Streak card -->
+          <div class="cal-stat-card">
+            <div class="cal-stat-label">Streak</div>
+            <div class="cal-stat-num" id="calStreakNum">0</div>
+            <div class="cal-stat-sub">days</div>
+          </div>
+          <!-- Notes card -->
+          <div class="cal-stat-card">
+            <div class="cal-stat-label">Notes</div>
+            <div class="cal-stat-num" id="calNotesNum">0</div>
+            <div class="cal-stat-sub">this month</div>
+          </div>
+        </div>
+
+        <!-- Typographic verse display — fills remaining space -->
+        <div class="cal-pattern-wrap" id="calPatternWrap">
+          <div class="cal-verse-display">
+            <div class="cal-verse-display-inner">
+              <span class="cal-verse-display-mark">❝</span>
+              <div class="cal-verse-display-text" id="calPatternText">Those who hope in the Lord will renew their strength.</div>
+              <div class="cal-verse-display-ref" id="calPatternRef">Isaiah 40:31</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Journal modal -->
+<div id="journalModal" style="display:none;position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;padding:24px;">
+  <div id="journalBackdrop" onclick="closeJournal()" style="position:absolute;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);"></div>
+  <div class="journal-paper">
+    <div class="journal-date" id="journalDateLabel"></div>
+    <div class="journal-verse-mini" id="journalVerseMini"></div>
+    <textarea class="journal-ta" id="journalTa" placeholder="Write what's on your heart..."></textarea>
+    <div class="journal-footer">
+      <button class="journal-clear" onclick="clearJournalEntry()">Clear</button>
+      <button class="journal-save" onclick="saveJournalEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <button class="nbtn on" onclick="goTo('ask',this)"><span class="nl">Ask</span></button>
+    <button class="nbtn" onclick="goTo('translate',this)"><span class="nl">Translate</span></button>
+    <button class="nbtn" onclick="goTo('quote',this)"><span class="nl">Quote</span></button>
+    <button class="nbtn" onclick="goTo('learn',this)"><span class="nl">Learn</span></button>
+  </div>
+</nav>
+<script>
+// NAV
+function goTo(id,btn){
+  // Reset nav bar to default when switching tabs
+  var nav=document.querySelector('.nav');
+  if(nav){nav.style.background='';nav.style.borderColor='';nav.style.backdropFilter='';}
+  document.querySelectorAll('.nbtn').forEach(function(b){b.style.color='';});
+  // Reset snap wraps to page 1
+  if(id!=='translate'){
+    var tw=document.getElementById('transWrap');
+    if(tw) tw.scrollTop=0;
+  }
+  if(id==='learn') setTimeout(initCalendar,50);
+  if(id!=='quote'){
+    var qw=document.getElementById('quoteSnapWrap');
+    var qh=document.getElementById('quoteHeaderTitle');
+    if(qw) qw.scrollTop=0;
+    if(qh) qh.style.color='#111';
+  }
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('s-'+id).classList.add('active');
+  btn.classList.add('on');
+  const bar=document.getElementById('askInputBar');
+  if(id==='ask'){bar.classList.add('visible');}else{bar.classList.remove('visible');}
+  if(id==='learn'){if(!learnLoaded)loadLesson();renderNotes();}
+  if(id==='quote'){
+    // pass nav height so card spacer is right
+    var nav=document.querySelector('.nav-bar');
+    window.initCard&&window.initCard(nav?nav.offsetHeight:88);
+  } else {
+    window.hideCard&&window.hideCard();
+  }
+}
+
+// TONE
+function selTone(el){el.closest('.tone-row').querySelectorAll('.tc').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
+// ── TRANSLATE CONCEPT SYSTEM ──
+// DOODLE SCENES per tone
+
+// LINE ART per tone (white bg, black lines)
+
+// ABSTRACT per tone
+
+// TYPO per tone
+
+function renderConcept(tone){
+  var chip = document.querySelector('.ttc.on');
+  var word = chip ? (chip.dataset.word||'Fresh.') : 'Fresh.';
+  var sub  = chip ? (chip.dataset.sub||'Youthful Tone') : 'Youthful Tone';
+  var wordEl = document.getElementById('transToneDisplay');
+  var subEl  = document.getElementById('transToneSub');
+  if(wordEl) wordEl.textContent = word;
+  if(subEl)  subEl.textContent  = sub;
+}
+
+function showInput(){}
+function transGoBack(){}
+
+
+function selTTone(el){
+  document.querySelectorAll('.ttc').forEach(function(c){c.classList.remove('on');});
+  el.classList.add('on');
+  renderConcept(el.dataset.tone||el.textContent);
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  renderConcept('Youthful');
+  var wrap = document.getElementById('transWrap');
+  var hdr  = document.getElementById('transHeaderTitle');
+  if(wrap && hdr){
+    wrap.addEventListener('scroll', function(){
+      var onPage2 = wrap.scrollTop > wrap.clientHeight * 0.5;
+      hdr.style.color = onPage2 ? '#fff' : '#111';
+      var nav = document.querySelector('.nav');
+      if(nav){
+        nav.style.background = onPage2 ? '#111' : '';
+        nav.style.borderColor = onPage2 ? 'rgba(255,255,255,0.08)' : '';
+        nav.style.backdropFilter = onPage2 ? 'none' : '';
+      }
+      var nbns = document.querySelectorAll('.nbtn');
+      nbns.forEach(function(b){ b.style.color = onPage2 ? 'rgba(255,255,255,0.4)' : ''; });
+      var active = document.querySelector('.nbtn.on');
+      if(active) active.style.color = onPage2 ? '#fff' : '';
+    });
+  }
+});
+function selQTone(el){document.querySelectorAll('.qtc').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
+function getTTone(){var s=document.querySelector('#s-translate .ttc.on');return s?(s.dataset.tone||s.textContent):'Youthful';}
+function getQTone(){const s=document.querySelector('.qtc.on');return s?s.textContent:'Reflective';}
+function getTone(rowId){const s=document.querySelector('#'+rowId+' .tc.on');return s?s.textContent:'Reflective';}
+
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+
+let _t;
+function toast(msg){document.querySelector('.toast')?.remove();clearTimeout(_t);const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);_t=setTimeout(()=>t.remove(),2400);}
+function copyEl(id){navigator.clipboard.writeText(document.getElementById(id).textContent.trim()).then(()=>toast('Copied!')).catch(()=>toast('Failed to copy'));}
+
+async function claude(system, user, max=1000) {
+  const key = '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';
+  const content = system ? system + '\n\n' + user : user;
+  let r;
+  try {
+    r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + key,
+        'HTTP-Referer': 'https://the-message.app',
+        'X-Title': 'The Message'
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-3-haiku',
+        max_tokens: max,
+        messages: [{ role: 'user', content: content }]
+      })
+    });
+  } catch(e) { throw new Error('Network error: ' + e.message); }
+  const data = await r.json();
+  if (!r.ok || data.error) throw new Error(data.error?.message || JSON.stringify(data.error) || 'API error ' + r.status);
+  return data.choices?.[0]?.message?.content || '';
+}
+
+// ── CHAT ──
+const hist=[];
+function addMsg(role,text){
+  const w=document.getElementById('chatWrap');
+  const long=text.length>60;
+  const d=document.createElement('div');d.className='msg '+(role==='user'?'user':'ai');
+  d.innerHTML=`<div class="msg-label">${role==='user'?'You':'Logos'}</div><div class="msg-bubble${long?' long':''}">${text.replace(/\n/g,'<br>')}</div>`;
+  w.appendChild(d);w.scrollTop=w.scrollHeight;
+}
+function addThink(){
+  const w=document.getElementById('chatWrap');const d=document.createElement('div');d.className='msg ai';d.id='thinkEl';
+  d.innerHTML='<div class="msg-label">Logos</div><div class="thinking"><div class="td"></div><div class="td"></div><div class="td"></div></div>';
+  w.appendChild(d);w.scrollTop=w.scrollHeight;
+}
+async function sendChat(){
+  const inp=document.getElementById('chatInput');const text=inp.value.trim();if(!text)return;
+  inp.value='';inp.style.height='auto';addMsg('user',text);hist.push({role:'user',content:text});addThink();
+  try{
+    const sys=`You are Logos, a warm and knowledgeable Bible study assistant. Help users understand Scripture by explaining verse meanings from original texts (Hebrew/Greek when relevant), providing cultural and historical context of biblical times, and explaining theological interpretations fairly. Use natural warm English. Answer in paragraphs, not bullet lists. Be humble and non-dogmatic.`;
+    const reply=await claude(sys, hist.map(m=>m.role+': '+m.content).join('\n'), 1000);
+    document.getElementById('thinkEl')?.remove();addMsg('ai',reply);hist.push({role:'assistant',content:reply});
+  }catch(e){document.getElementById('thinkEl')?.remove();addMsg('ai','Error: '+e.message);}
+}
+
+// ── TRANSLATE ──
+// ── AUTO FONT SIZE — shrink if text too long ──
+function adjustQuoteFontSize(el) {
+  var len = (el.textContent || '').length;
+  var fs;
+  if (len < 120) fs = 'clamp(28px,7vw,40px)';
+  else if (len < 200) fs = 'clamp(22px,5.5vw,32px)';
+  else if (len < 300) fs = 'clamp(18px,4.5vw,26px)';
+  else fs = 'clamp(15px,3.8vw,21px)';
+  el.style.setProperty('--qfont', fs);
+}
+function adjustTransFontSize(el) {
+  var len = (el.textContent || '').length;
+  var fs;
+  if (len < 120) fs = 'clamp(30px,8vw,44px)';
+  else if (len < 200) fs = 'clamp(24px,6vw,34px)';
+  else if (len < 300) fs = 'clamp(19px,5vw,28px)';
+  else fs = 'clamp(16px,4vw,22px)';
+  el.style.setProperty('--tfont', fs);
+}
+
+async function doTranslate(){
+  const text=document.getElementById('transInput').value.trim();
+  if(!text){toast('Write some text first');return;}
+  const tone=getTTone();
+  const btn=document.getElementById('transBtn');
+  const result=document.getElementById('transResult');
+  const toneLabel=document.getElementById('transResultTone');
+  if(toneLabel) toneLabel.textContent=tone+' Translation';
+  // snap to page 2 immediately (like doQuote2)
+  const transWrap=document.getElementById('transWrap');
+  if(transWrap) transWrap.scrollTo({top:transWrap.clientHeight,behavior:'smooth'});
+  btn.disabled=true;btn.textContent='Translating...';
+  result.className='trans-result-text';
+  result.innerHTML='<div style="display:flex;gap:8px;align-items:center;color:var(--t3);font-size:13px;"><div class="spinner"></div> Translating...</div>';
+  var rw=document.getElementById('transResultWrap');
+  var iw=document.getElementById('transInputWrap');
+  if(rw) rw.style.display='block';
+  if(iw) iw.style.display='none';
+  try{
+    const sys=`You are a skilled Christian translator. Translate Indonesian text to English with a ${tone.toLowerCase()} tone. Youthful: fresh, relatable, energetic. Reflective: contemplative, deep, meditative. Formal: professional, dignified. Poetic: lyrical, imagery-rich. Devotional: prayerful, intimate with God. Simple: clear, plain, easy to understand. Return ONLY the translated text. No explanation. Preserve all spiritual meaning.`;
+    const reply=await claude(sys,text);
+    result.className='trans-result-text';
+    var cb=document.getElementById('transCopyBtn');
+    if(cb) cb.style.display='block';result.textContent=reply;
+    result.className='trans-result-text';
+    adjustTransFontSize(result);
+  }catch(e){result.className='trans-result-text empty';result.textContent='Something went wrong. Try again.';}
+  btn.disabled=false;btn.textContent='Translate';
+  // show copy btn
+  var cb=document.getElementById('transCopyBtn');if(cb)cb.style.color='rgba(255,255,255,0.5)';
+}
+
+// ── QUOTE CAROUSEL ──
+const qCards=[];
+
+function renderCarousel(){
+  const track=document.getElementById('qTrack');
+  const dotsEl=document.getElementById('qDots');
+  const empty=document.getElementById('qEmptyState');
+
+  track.querySelectorAll('.q-card').forEach(c=>c.remove());
+
+  if(!qCards.length){
+    empty.style.display='flex';
+    dotsEl.innerHTML='';
+    return;
+  }
+  empty.style.display='none';
+
+  qCards.forEach((card,i)=>{
+    const el=document.createElement('div');
+    el.className='q-card';
+
+    const cat=document.createElement('div');
+    cat.className='q-card-cat';
+    cat.textContent=card.tone+' · The Message';
+
+    const txt=document.createElement('div');
+    txt.className='q-card-text';
+    txt.textContent=card.text;
+
+    const src=document.createElement('div');
+    src.className='q-card-src';
+    src.textContent=card.src;
+
+    const actions=document.createElement('div');
+    actions.className='q-card-actions';
+    const copyBtn=document.createElement('button');
+    copyBtn.className='q-card-copy';
+    copyBtn.title='Copy';
+    copyBtn.innerHTML='<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    copyBtn.addEventListener('click',()=>{
+      navigator.clipboard.writeText(card.text+' '+card.src).then(()=>toast('Copied!'));
+    });
+    actions.appendChild(copyBtn);
+    el.appendChild(cat);el.appendChild(txt);el.appendChild(src);el.appendChild(actions);
+    track.insertBefore(el, track.firstChild);
+  });
+
+  // dots update on scroll
+  dotsEl.innerHTML=qCards.map((_,i)=>`<div class="q-dot${i===0?' on':''}"></div>`).join('');
+  track.addEventListener('scroll', ()=>{
+    const idx=Math.round(track.scrollLeft/(track.scrollWidth/qCards.length));
+    document.querySelectorAll('.q-dot').forEach((d,i)=>{d.className='q-dot'+(i===idx?' on':'');});
+  },{passive:true});
+
+  // scroll to first (newest) card
+  track.scrollLeft=0;
+}
+
+// ── INPUT CARD DRAG ──
+(function(){
+  var dragging=false, collapsed=false, startY=0, lastY=0, startT=0;
+  // fullH = natural height of card (measured once after display:flex)
+  // peekH = visible height when collapsed (handle+label+pill+row+spacer)
+  var fullH=0, peekH=0, navH=0;
+
+  function card(){ return document.getElementById('qInputCard'); }
+  function gy(e){ return e.touches?e.touches[0].clientY:e.clientY; }
+
+  // Measure card's natural (expanded) height.
+  // Card has NO top/bottom set, so offsetHeight = real content height.
+  function measure(){
+    var c=card(); if(!c) return;
+    var savedTop=c.style.top, savedTrans=c.style.transition;
+    c.style.transition='none';
+    c.style.top='';
+    c.style.bottom='';
+    void c.offsetHeight; // force reflow
+    fullH = Math.max(c.offsetHeight, c.scrollHeight, 300);
+    // collapsed: show only handle + label + pill above navbar
+    // handle(46) + gap(12) + label(20) + gap(12) + pill(50) + nav(80) = 220, but want a bit lower
+    peekH = 160;
+    c.style.top=savedTop;
+    c.style.transition=savedTrans;
+
+    // adjust nav spacer
+    var sp=document.getElementById('qNavSpacer');
+    if(sp) sp.style.height=navH+'px';
+    c.style.top=savedTop;
+  }
+
+  // Position card: card top edge at `topPx` from screen top, bottom free
+  // Card height = fullH always (fixed), position changes
+  function pos(topPx, anim){
+    var c=card(); if(!c) return;
+    c.style.transition=anim?'top .38s cubic-bezier(.25,.8,.25,1)':'none';
+    c.style.top=topPx+'px';
+    c.style.bottom='auto';
+    syncScreen(topPx);
+  }
+
+  function syncScreen(topPx){
+    var sq=document.getElementById('s-quote');
+    if(!sq) return;
+    var cardH=window.innerHeight-topPx;
+    sq.style.paddingBottom=(cardH-4)+'px';
+  }
+
+  function collapse(){
+    var sh=window.innerHeight;
+    pos(sh-peekH, true);
+    collapsed=true;
+    setTimeout(function(){ syncScreen(sh-peekH); },400);
+  }
+  function restore(){
+    var sh=window.innerHeight;
+    pos(sh-fullH, true);
+    var s=document.getElementById('qPeekStatus');
+    if(s&&s.dataset.done!=='1') s.innerHTML='';
+    collapsed=false;
+    setTimeout(function(){ syncScreen(sh-fullH); },400);
+  }
+
+  function onStart(e){
+    var c=card(); if(!c||!fullH) return;
+    dragging=true; startY=lastY=gy(e); startT=Date.now();
+    c.style.transition='none';
+    c._t0=parseFloat(c.style.top)||( window.innerHeight-peekH );
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!dragging) return;
+    lastY=gy(e);
+    var sh=window.innerHeight;
+    var minT=sh-peekH, maxT=sh-fullH;
+    var next=Math.max(minT, Math.min(maxT, card()._t0+(lastY-startY)));
+    card().style.top=next+'px';
+    syncScreen(next);
+    e.preventDefault();
+  }
+  function onEnd(){
+    if(!dragging) return; dragging=false;
+    var dy=lastY-startY, fast=Date.now()-startT<300;
+    var range=fullH-peekH;
+    if((fast&&dy>15)||dy>range*0.35) collapse();
+    else if((fast&&dy<-15)||dy<-range*0.35) restore();
+    else collapsed?collapse():restore();
+  }
+
+  // Called from goTo when showing card
+  window.initCard=function(navHeight){
+    navH=navHeight||88;
+    var c=card(); if(!c) return;
+    c.style.display='flex';
+    c.style.top=''; c.style.bottom='';
+    c.style.transition='none';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        measure();
+        collapse();
+      });
+    });
+  };
+  window.hideCard=function(){
+    var c=card(); if(!c) return;
+    c.style.display='none';
+    var sq=document.getElementById('s-quote');
+    if(sq) sq.style.paddingBottom='';
+  };
+  window.collapseCard=collapse;
+  window.restoreInputCard=restore;
+
+  document.addEventListener('DOMContentLoaded',function(){
+    var h=document.getElementById('qPeekHandle'); if(!h) return;
+    h.addEventListener('touchstart',onStart,{passive:false});
+    h.addEventListener('touchmove',onMove,{passive:false});
+    h.addEventListener('touchend',onEnd,{passive:true});
+    h.addEventListener('mousedown',onStart);
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onEnd);
+  });
+})();
+
+async function doQuote(){
+  const text=document.getElementById('quoteInput').value.trim();
+  if(!text){toast('Write your verse or thought first');return;}
+  const tone=getQTone();
+  const btn=document.getElementById('quoteBtn');
+  const status=document.getElementById('qPeekStatus');
+  btn.disabled=true; btn.textContent='...';
+  window.collapseCard();
+  status.dataset.done=''; status.innerHTML='<div class="spinner"></div> Generating...';
+  try{
+    const sys=`You are a Christian quote writer. Create ONE powerful quote in English based on the user's input. Tone: ${tone}. Youthful: energetic, relatable, modern. Reflective: deep, contemplative, poetic. Prophetic: bold declaration, faith-filled. Gentle: tender, comforting, graceful. Bold: strong, courageous, calls to action. Poetic: lyrical, imagery-rich, metaphorical. Rules: 1-3 sentences max. Memorable and shareable. Do NOT write [quote] or any placeholder. Write ONLY the quote text itself. Then on a new line write exactly "---SOURCE---" followed by a short attribution like "Matthew 6:33" or "Personal Reflection". No extra labels.`;
+    const reply=await claude(sys,text);
+    const parts=reply.split('---SOURCE---');
+    const q=parts[0].trim().replace(/^\[quote\]\s*/i,'').replace(/^["\u201c]|["\u201d]$/g,'').trim();
+    const src=parts[1]?.trim()||'';
+    qCards.unshift({text:'\u201c'+q+'\u201d',src:src?'\u2014 '+src:'',tone});
+    renderCarousel();
+    status.dataset.done='1'; status.innerHTML='\u2736 Done';
+    setTimeout(()=>{ window.restoreInputCard(); status.innerHTML=''; }, 1000);
+  }catch(e){
+    toast('Something went wrong. Try again.');
+    window.restoreInputCard();
+  }
+  btn.disabled=false; btn.textContent='Generate';
+}
+
+
+// ── QUOTE v2 ──
+function selQTone2(el){
+  document.querySelectorAll('.qtc2').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+}
+function getQTone2(){
+  var el=document.querySelector('.qtc2.on');
+  return el?(el.dataset.tone||el.textContent):'Youthful';
+}
+function quoteGoBack(){
+  var w=document.getElementById('quoteSnapWrap');
+  if(w) w.scrollTo({top:0,behavior:'smooth'});
+}
+async function doQuote2(){
+  const text=document.getElementById('quoteInput2').value.trim();
+  if(!text){toast('Write your verse or thought first');return;}
+  const tone=getQTone2();
+  const btn=document.getElementById('quoteBtn2');
+  const result=document.getElementById('quoteResult2');
+  const src=document.getElementById('quoteSource2');
+  const tag=document.getElementById('quoteToneTag');
+  const hdr=document.getElementById('quoteHeaderTitle');
+  // snap to page 2
+  const wrap=document.getElementById('quoteSnapWrap');
+  if(wrap) wrap.scrollTo({top:wrap.clientHeight,behavior:'smooth'});
+  if(tag) tag.textContent=tone;
+  if(hdr) hdr.style.color='#fff';
+  result.className='qp2-quote-text loading';
+  result.textContent='Generating...';
+  if(src) src.textContent='';
+  btn.disabled=true;
+  try{
+    const sys=`You are a Christian quote writer. Create ONE powerful quote in English based on the user's input. Tone: ${tone}. Youthful: energetic, relatable, modern. Reflective: deep, contemplative, poetic. Prophetic: bold declaration, faith-filled. Gentle: tender, comforting, graceful. Bold: strong, courageous, calls to action. Poetic: lyrical, imagery-rich, metaphorical. Rules: 1-3 sentences max. Memorable and shareable. Do NOT write [quote] or any placeholder. Write ONLY the quote text itself. Then on a new line write exactly "---SOURCE---" followed by a short attribution like "Matthew 6:33" or "Personal Reflection". No extra labels.`;
+    const reply=await claude(sys,text);
+    const parts=reply.split('---SOURCE---');
+    const q=parts[0].trim().replace(/^\[quote\]\s*/i,'').replace(/^["\u201c]|["\u201d]$/g,'').trim();
+    const s=parts[1]?.trim()||'';
+    result.className='qp2-quote-text';
+    result.textContent='\u201c'+q+'\u201d';
+    adjustQuoteFontSize(result);
+    if(src) src.textContent=s?'\u2014 '+s:'';
+  }catch(e){
+    result.className='qp2-quote-text loading';
+    result.textContent='Something went wrong. Try again.';
+  }
+  btn.disabled=false;
+}
+
+// scroll listener for quote header color
+document.addEventListener('DOMContentLoaded',function(){
+
+  // ── TRANSLATE header dark/light ──
+  var twrap=document.getElementById('transWrap');
+  var thdr=document.getElementById('transFloatHeader');
+  if(twrap&&thdr){
+    function updateTransHdr(){
+      var onP2=twrap.scrollTop>twrap.clientHeight*0.5;
+      thdr.style.background=onP2?'rgba(17,17,17,0.85)':'rgba(255,255,255,0.75)';
+      var ttitle=document.getElementById('transHeaderTitle');
+      if(ttitle) ttitle.style.color=onP2?'#fff':'#111';
+      var tsub=ttitle?.nextElementSibling;
+      if(tsub) tsub.style.color=onP2?'rgba(255,255,255,0.3)':'';
+      var nav=document.querySelector('.nav');
+      if(nav&&document.getElementById('s-translate').classList.contains('active')){
+        nav.style.background=onP2?'rgba(17,17,17,0.92)':'';
+        nav.style.borderColor=onP2?'rgba(255,255,255,0.1)':'';
+        nav.style.boxShadow=onP2?'none':'';
+        document.querySelectorAll('.nbtn').forEach(function(b){b.style.color=onP2?'rgba(255,255,255,0.3)':'';});
+        var active=document.querySelector('.nbtn.on');
+        if(active) active.style.color=onP2?'#fff':'';
+      }
+    }
+    twrap.addEventListener('scroll',updateTransHdr,{passive:true});
+  }
+
+  var qwrap=document.getElementById('quoteSnapWrap');
+  var qhdr=document.getElementById('quoteHeaderTitle');
+  if(qwrap&&qhdr){
+    qwrap.addEventListener('scroll',function(){
+      var onP2=qwrap.scrollTop>qwrap.clientHeight*0.5;
+      var hdrEl=document.getElementById('quoteFloatHeader');
+      if(hdrEl){
+        hdrEl.style.background=onP2?'#111':'#fff';
+        hdrEl.style.borderBottomColor=onP2?'rgba(255,255,255,0.1)':'var(--border,#e8e8e8)';
+      }
+      if(qhdr) qhdr.style.color=onP2?'#fff':'#111';
+      var qSub=qhdr?.nextElementSibling;
+      if(qSub) qSub.style.color=onP2?'rgba(255,255,255,0.3)':'';
+      var nav=document.querySelector('.nav');
+      if(nav&&document.getElementById('s-quote').classList.contains('active')){
+        nav.style.background=onP2?'rgba(17,17,17,0.92)':'';
+        nav.style.borderColor=onP2?'rgba(255,255,255,0.1)':'';
+        nav.style.boxShadow=onP2?'none':'';
+        document.querySelectorAll('.nbtn').forEach(function(b){b.style.color=onP2?'rgba(255,255,255,0.3)':'';});
+        var active=document.querySelector('.nbtn.on');
+        if(active) active.style.color=onP2?'#fff':'';
+      }
+    });
+  }
+});
+
+
+// ── LEARN CALENDAR ──
+var calYear, calMonth, calSelected;
+
+function initCalendar(){
+  var now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  calSelected = now.getDate();
+  renderCalendar();
+}
+
+function calPrevMonth(){
+  calMonth--;
+  if(calMonth < 0){calMonth=11;calYear--;}
+  renderCalendar();
+}
+function calNextMonth(){
+  calMonth++;
+  if(calMonth > 11){calMonth=0;calYear++;}
+  renderCalendar();
+}
+
+var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+var verses = [
+  {ref:'John 15:5',text:'"I am the vine; you are the branches."'},
+  {ref:'Philippians 4:13',text:'"I can do all this through him who gives me strength."'},
+  {ref:'Jeremiah 29:11',text:'"For I know the plans I have for you," declares the Lord.'},
+  {ref:'Romans 8:28',text:'"In all things God works for the good of those who love him."'},
+  {ref:'Psalm 23:1',text:'"The Lord is my shepherd, I lack nothing."'},
+  {ref:'Isaiah 40:31',text:'"Those who hope in the Lord will renew their strength."'},
+  {ref:'Matthew 11:28',text:'"Come to me, all you who are weary and burdened."'},
+];
+function verseForDay(y,m,d){
+  var seed = y*10000 + m*100 + d;
+  return verses[seed % verses.length];
+}
+
+function getJournalKey(y,m,d){return 'journal_'+y+'_'+m+'_'+d;}
+function getJournal(y,m,d){
+  try{return localStorage.getItem(getJournalKey(y,m,d))||'';}catch(e){return '';}
+}
+function saveJournal(y,m,d,text){
+  try{localStorage.setItem(getJournalKey(y,m,d),text);}catch(e){}
+}
+
+function renderCalendar(){
+  var label = document.getElementById('calMonthLabel');
+  if(label) label.textContent = MONTHS[calMonth]+' '+calYear;
+
+  var grid = document.getElementById('calGrid');
+  if(!grid) return;
+  grid.innerHTML = '';
+
+  var firstDay = new Date(calYear, calMonth, 1).getDay();
+  // Convert Sunday=0 to Monday=0
+  firstDay = (firstDay + 6) % 7;
+  var daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  var today = new Date();
+
+  // Empty cells before first day
+  for(var i=0;i<firstDay;i++){
+    var empty = document.createElement('button');
+    empty.className='cal-day empty';
+    grid.appendChild(empty);
+  }
+
+  for(var d=1;d<=daysInMonth;d++){
+    var btn = document.createElement('button');
+    btn.className='cal-day';
+    btn.textContent=d;
+    var isToday = (d===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear());
+    var isSelected = (d===calSelected && calMonth===calMonth && calYear===calYear);
+    if(isToday) btn.classList.add('today');
+    if(d===calSelected) btn.classList.add('selected');
+    if(getJournal(calYear,calMonth,d)) btn.classList.add('has-note');
+    (function(day){
+      btn.onclick = function(){ selectDay(day); };
+    })(d);
+    grid.appendChild(btn);
+  }
+
+  // Show verse for selected day
+  showCalVerse();
+}
+
+function selectDay(d){
+  calSelected = d;
+  renderCalendar();
+  openJournal(calYear, calMonth, d);
+}
+
+function showCalVerse(){
+  var v = verseForDay(calYear, calMonth, calSelected||1);
+  // Update the big typographic display
+  var pt = document.getElementById('calPatternText');
+  var pr = document.getElementById('calPatternRef');
+  if(pt) pt.textContent = v.text.replace(/^[""]|[""]$/g,'');
+  if(pr) pr.textContent = v.ref;
+  // Update stats
+  updateCalStats();
+}
+
+function updateCalStats(){
+  // Count notes this month
+  var notesCount=0;
+  var daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  var streak=0;
+  var today=new Date();
+  var isCurrentMonth=(calMonth===today.getMonth()&&calYear===today.getFullYear());
+  for(var d=1;d<=daysInMonth;d++){
+    if(getJournal(calYear,calMonth,d)) notesCount++;
+  }
+  // Streak: count consecutive days back from today (only current month)
+  if(isCurrentMonth){
+    for(var d=today.getDate();d>=1;d--){
+      if(getJournal(calYear,calMonth,d)) streak++;
+      else break;
+    }
+  }
+  var sn=document.getElementById('calStreakNum');
+  var nn=document.getElementById('calNotesNum');
+  if(sn) sn.textContent=streak;
+  if(nn) nn.textContent=notesCount;
+}
+
+function openJournal(y,m,d){
+  var modal = document.getElementById('journalModal');
+  var dateLabel = document.getElementById('journalDateLabel');
+  var verseMini = document.getElementById('journalVerseMini');
+  var ta = document.getElementById('journalTa');
+  if(!modal) return;
+  var months = MONTHS;
+  if(dateLabel) dateLabel.textContent = d+' '+months[m]+' '+y;
+  var v = verseForDay(y,m,d);
+  if(verseMini) verseMini.textContent = v.text+' — '+v.ref;
+  if(ta) ta.value = getJournal(y,m,d);
+  modal.style.display='flex';
+  document.body.style.overflow='hidden';
+  if(ta) setTimeout(function(){ta.focus();},100);
+}
+
+function closeJournal(){
+  var modal = document.getElementById('journalModal');
+  if(modal) modal.style.display='none';
+  document.body.style.overflow='';
+}
+
+function clearJournalEntry(){var ta=document.getElementById('journalTa');if(ta)ta.value='';}
+function saveJournalEntry(){
+  var ta = document.getElementById('journalTa');
+  if(!ta) return;
+  saveJournal(calYear, calMonth, calSelected, ta.value);
+  closeJournal();
+  renderCalendar(); // refresh dots
+  toast('Saved!');
+}
+
+// init calendar when learn tab opened
+var _origGoTo = typeof goTo === 'function' ? goTo : null;
+
+
+// ── LEARN ──
+let learnLoaded=false,learnTab='verse',learnData=null;
+// verses defined above
+async function loadLesson(){
+  learnLoaded=true;const now=new Date();
+  var sp=document.getElementById('learnSpinner');if(sp)sp.style.display='none';
+  document.getElementById('learnDate').textContent=now.getDate();
+  const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('learnBook').textContent=mo[now.getMonth()]+' '+now.getFullYear();
+  const pick=verses[Math.floor(Math.random()*verses.length)];
+  document.getElementById('learnVerse').textContent=pick.text;
+  document.getElementById('learnRef').textContent=pick.ref;
+  document.getElementById('learnInsight').innerHTML='<div style="display:flex;gap:8px;align-items:center;color:var(--t3);font-size:13px;"><div class="spinner"></div> Loading devotion...</div>';
+  try{
+    const prompt=`You are a Bible devotion guide. For the verse below, respond with ONLY a raw JSON object — no markdown, no explanation, no text before or after.
+
+Verse: ${pick.ref} — ${pick.text}
+
+JSON format:
+{"devotion":"3-4 sentence devotional paragraph, deep and personal","reflection":["Question 1","Question 2","Question 3"],"context":"Short paragraph about historical and cultural context"}`;
+    const reply=await claude('', prompt, 1000);
+    const clean=reply.replace(/```json|```/g,'').trim();
+    const start=clean.indexOf('{');
+    const end=clean.lastIndexOf('}');
+    learnData=JSON.parse(clean.slice(start,end+1));
+    showTab(learnTab);
+  }catch(e){
+    document.getElementById('learnInsight').innerHTML='<div style="color:var(--t3);font-size:13px;">Error: '+e.message+' — <span onclick="learnLoaded=false;loadLesson()" style="color:#111;font-weight:700;cursor:pointer;text-decoration:underline;">Try again</span></div>';
+    console.error('loadLesson error:',e);
+  }
+}
+function switchLearnTab(btn,tab){document.querySelectorAll('.learn-tab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');learnTab=tab;if(learnData)showTab(tab);}
+function switchTab(btn,tab){switchLearnTab(btn,tab);}
+function showTab(tab){
+  const lbl=document.getElementById('learnInsightLabel'),el=document.getElementById('learnInsight');if(!learnData)return;
+  if(tab==='verse'){lbl.textContent='Devotion';el.innerHTML=learnData.devotion.replace(/\n/g,'<br>');}
+  else if(tab==='reflection'){lbl.textContent='Reflection Questions';el.innerHTML=(learnData.reflection||[]).map(q=>`<div class="learn-rq">${q}</div>`).join('');}
+  else if(tab==='context'){lbl.textContent='Historical Context';el.innerHTML=learnData.context.replace(/\n/g,'<br>');}
+}
+
+// ── NOTES ──
+function getNotes(){try{return JSON.parse(localStorage.getItem('logos_notes')||'[]');}catch(e){return[];}}
+function saveNote(){
+  const text=document.getElementById('notesField').value.trim();if(!text){toast('Write something first');return;}
+  const notes=getNotes();const now=new Date();
+  const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  notes.unshift({id:Date.now(),text,date:now.getDate()+' '+mo[now.getMonth()]+' '+now.getFullYear()});
+  localStorage.setItem('logos_notes',JSON.stringify(notes.slice(0,30)));
+  document.getElementById('notesField').value='';renderNotes();toast('Note saved!');
+}
+function deleteNote(id){localStorage.setItem('logos_notes',JSON.stringify(getNotes().filter(n=>n.id!==id)));renderNotes();}
+function renderNotes(){
+  const notes=getNotes();const c=document.getElementById('savedNotesList');
+  if(!c)return;
+  if(!notes.length){c.innerHTML='';return;}
+  c.innerHTML=notes.map(n=>`<div class="learn-note-item"><div class="learn-note-date">${n.date}</div><div class="learn-note-text">${n.text}</div></div>`).join('');
+}
+
+// ── GOOGLE DRIVE SYNC ──
+var WORKER_URL = 'https://thenotes-gdrive-auth.yosuawic.workers.dev';
+var GDRIVE_FILE_NAME = 'logos-data.json';
+var GDRIVE_SK = 'logos_gdrive';
+var gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null, uid:null };
+var _tokenRefreshTimer = null;
+var _saveDriveTimer = null;
+
+var _idb = null;
+function _openIDB() {
+  if (_idb) return Promise.resolve(_idb);
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open('logos_gdrive_db', 1);
+    req.onupgradeneeded = function(e) { e.target.result.createObjectStore('meta', { keyPath: 'k' }); };
+    req.onsuccess = function(e) { _idb = e.target.result; resolve(_idb); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+function gSaveMeta(email, fileId, uid) {
+  try { localStorage.setItem(GDRIVE_SK, JSON.stringify({ email: email||'', fileId: fileId||'', uid: uid||'' })); } catch(e) {}
+  _openIDB().then(function(db) {
+    db.transaction('meta','readwrite').objectStore('meta').put({ k: GDRIVE_SK, email: email||'', fileId: fileId||'', uid: uid||'' });
+  }).catch(function(){});
+}
+function gLoadMeta() {
+  try {
+    var r = localStorage.getItem(GDRIVE_SK);
+    if (r) return Promise.resolve(JSON.parse(r));
+  } catch(e) {}
+  return _openIDB().then(function(db) {
+    return new Promise(function(resolve) {
+      var req = db.transaction('meta','readonly').objectStore('meta').get(GDRIVE_SK);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { resolve(null); };
+    });
+  }).catch(function() { return null; });
+}
+function gClearMeta() {
+  try { localStorage.removeItem(GDRIVE_SK); } catch(e) {}
+  _openIDB().then(function(db) {
+    db.transaction('meta','readwrite').objectStore('meta').delete(GDRIVE_SK);
+  }).catch(function(){});
+}
+
+function updateSyncPill(status) {
+  var pill = document.getElementById('syncPill');
+  if (!pill) return;
+  pill.className = 'sync-pill-btn';
+  if (status === 'connected') {
+    var name = gAuth.email ? gAuth.email.split('@')[0].toUpperCase() : 'SYNCED';
+    pill.textContent = name + ' ↑';
+    pill.title = 'Tap to sync';
+    pill.onclick = function() { gManualSync(); };
+  } else if (status === 'syncing') {
+    pill.classList.add('syncing'); pill.textContent = 'Syncing...'; pill.onclick = null;
+  } else if (status === 'error') {
+    pill.classList.add('error'); pill.textContent = 'Retry ↺'; pill.onclick = gConnect;
+  } else {
+    pill.classList.add('offline'); pill.textContent = 'Connect Drive'; pill.onclick = gConnect;
+  }
+}
+
+function gManualSync() {
+  if (!gAuth.connected) { gConnect(); return; }
+  gRefreshToken(); gSaveToDrive(true);
+}
+
+function _getLogosData() {
+  var notes = [];
+  try { notes = JSON.parse(localStorage.getItem('logos_notes') || '[]'); } catch(e) {}
+  // Collect journal entries
+  var journal = {};
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.startsWith('logos_journal_')) {
+        journal[k] = localStorage.getItem(k);
+      }
+    }
+  } catch(e) {}
+  return { notes: notes, journal: journal, lastModified: Date.now(), _appId: 'logos' };
+}
+
+function _applyLogosData(data) {
+  if (data.notes) {
+    try { localStorage.setItem('logos_notes', JSON.stringify(data.notes)); } catch(e) {}
+  }
+  if (data.journal) {
+    try {
+      Object.keys(data.journal).forEach(function(k) {
+        localStorage.setItem(k, data.journal[k]);
+      });
+    } catch(e) {}
+  }
+  renderNotes();
+}
+
+function _logosLocalHasData() {
+  var notes = [];
+  try { notes = JSON.parse(localStorage.getItem('logos_notes') || '[]'); } catch(e) {}
+  if (notes.length > 0) return true;
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if (k && k.startsWith('logos_journal_')) return true;
+  }
+  return false;
+}
+
+window.addEventListener('load', function() {
+  var urlParams = new URLSearchParams(window.location.search);
+  var uidFromUrl = urlParams.get('uid');
+  var emailFromUrl = urlParams.get('email');
+  if (uidFromUrl) {
+    gSaveMeta(decodeURIComponent(emailFromUrl || ''), '', uidFromUrl);
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  gLoadMeta().then(function(meta) {
+    if (meta && meta.uid) {
+      gAuth.uid = meta.uid; gAuth.email = meta.email || ''; gAuth.fileId = meta.fileId || null;
+      updateSyncPill('syncing'); gRefreshToken();
+    } else { updateSyncPill('offline'); }
+  });
+});
+
+function gRefreshToken() {
+  if (!gAuth.uid) return;
+  fetch(WORKER_URL + '/auth/token?uid=' + gAuth.uid)
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.error) {
+        gClearMeta(); gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null, uid:null };
+        updateSyncPill('offline'); return;
+      }
+      gAuth.token = data.access_token; gAuth.connected = true; gAuth.email = data.email || gAuth.email;
+      if (gAuth.fileId) { gLoadFromDrive(); } else { gFindOrCreateFile(); }
+      gScheduleTokenRefresh(); updateSyncPill('connected');
+    }).catch(function() { updateSyncPill('offline'); });
+}
+
+function gScheduleTokenRefresh() {
+  clearTimeout(_tokenRefreshTimer);
+  _tokenRefreshTimer = setTimeout(function() { if (gAuth.uid) gRefreshToken(); }, 45 * 60 * 1000);
+}
+
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && gAuth.uid) gRefreshToken();
+});
+
+function isPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function gConnect() {
+  if (gAuth.connected) { gManualSync(); return; }
+  var loginUrl = WORKER_URL + '/auth/login?redirect=' + encodeURIComponent(window.location.origin + window.location.pathname);
+  if (isPWA()) {
+    window.location.href = loginUrl;
+    return;
+  }
+  var popup = window.open(loginUrl, 'gdrive_auth', 'width=500,height=600,scrollbars=yes');
+  window.addEventListener('message', function onMsg(e) {
+    if (!e.data || e.data.type !== 'gdrive_auth') return;
+    window.removeEventListener('message', onMsg);
+    if (popup) popup.close();
+    gAuth.uid = e.data.uid; gAuth.email = decodeURIComponent(e.data.email || '');
+    gSaveMeta(gAuth.email, '', gAuth.uid); updateSyncPill('syncing'); gRefreshToken();
+  });
+}
+
+function gDisconnect() {
+  clearTimeout(_tokenRefreshTimer); clearTimeout(_saveDriveTimer);
+  if (gAuth.uid) fetch(WORKER_URL + '/auth/logout?uid=' + gAuth.uid).catch(function(){});
+  gClearMeta();
+  gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null };
+  updateSyncPill('offline');
+}
+
+function gFindOrCreateFile() {
+  updateSyncPill('syncing');
+  fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='" + GDRIVE_FILE_NAME + "'&fields=files(id,name)", {
+    headers: { Authorization: 'Bearer ' + gAuth.token }
+  }).then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.files && data.files.length > 0) {
+        gAuth.fileId = data.files[0].id;
+        gSaveMeta(gAuth.email, gAuth.fileId, gAuth.uid);
+        gLoadFromDrive();
+      } else { gCreateFile(); }
+    }).catch(function(){ updateSyncPill('error'); });
+}
+
+function gCreateFile() {
+  var meta = JSON.stringify({ name: GDRIVE_FILE_NAME, parents: ['appDataFolder'] });
+  var body = JSON.stringify(_getLogosData());
+  var boundary = '-------logos_boundary';
+  var payload = '--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + meta +
+    '\r\n--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + body + '\r\n--' + boundary + '--';
+  fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + gAuth.token, 'Content-Type': 'multipart/related; boundary=' + boundary },
+    body: payload
+  }).then(function(r){ return r.json(); })
+    .then(function(data){
+      gAuth.fileId = data.id;
+      gSaveMeta(gAuth.email, gAuth.fileId, gAuth.uid);
+      updateSyncPill('connected');
+    }).catch(function(){ updateSyncPill('error'); });
+}
+
+function gLoadFromDrive() {
+  fetch('https://www.googleapis.com/drive/v3/files/' + gAuth.fileId + '?alt=media', {
+    headers: { Authorization: 'Bearer ' + gAuth.token }
+  }).then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data || data._appId !== 'logos') {
+        gAuth.fileId = null; gSaveMeta(gAuth.email, '', gAuth.uid); gCreateFile(); return;
+      }
+      var driveTs = data.lastModified || 0;
+      var localTs = 0;
+      try { var lm = localStorage.getItem('logos_lastModified'); if (lm) localTs = parseInt(lm); } catch(e) {}
+      var localHasData = _logosLocalHasData();
+      var driveHasData = (data.notes && data.notes.length > 0) || (data.journal && Object.keys(data.journal).length > 0);
+
+      function applyDrive() {
+        _applyLogosData(data);
+        try { localStorage.setItem('logos_lastModified', String(data.lastModified || 0)); } catch(e) {}
+        updateSyncPill('connected');
+      }
+
+      if (!localHasData && driveHasData) {
+        applyDrive(); toast('Restored from Drive!');
+      } else if (localHasData && !driveHasData) {
+        updateSyncPill('connected'); gSaveToDrive(true);
+      } else if (!localHasData && !driveHasData) {
+        updateSyncPill('connected');
+      } else {
+        if (driveTs > localTs) { applyDrive(); }
+        else { updateSyncPill('connected'); gSaveToDrive(true); }
+      }
+    }).catch(function(){ updateSyncPill('error'); });
+}
+
+function gSilentReauth() {
+  if (!gAuth.uid) return;
+  fetch(WORKER_URL + '/auth/token?uid=' + gAuth.uid)
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.error) { gClearMeta(); gAuth = { token:null, fileId:null, connected:false, syncing:false, email:null, uid:null }; return; }
+      gAuth.token = data.access_token; gAuth.connected = true;
+      gSaveToDrive(true);
+    }).catch(function(){});
+}
+
+function gSaveToDrive(immediate) {
+  if (!gAuth.connected || !gAuth.fileId || gAuth.syncing) return;
+  clearTimeout(_saveDriveTimer);
+  _saveDriveTimer = setTimeout(function(){
+    gAuth.syncing = true; updateSyncPill('syncing');
+    var payload = _getLogosData();
+    try { localStorage.setItem('logos_lastModified', String(payload.lastModified)); } catch(e) {}
+    fetch('https://www.googleapis.com/upload/drive/v3/files/' + gAuth.fileId + '?uploadType=media', {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + gAuth.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function(){
+      gAuth.syncing = false; updateSyncPill('connected');
+    }).catch(function(){
+      gAuth.syncing = false;
+      if (gAuth.email) { gSilentReauth(); } else { updateSyncPill('error'); }
+    });
+  }, immediate ? 0 : 2000);
+}
+
+// Auto-save to Drive when notes/journal changes
+var _origSaveNote = saveNote;
+saveNote = function() {
+  _origSaveNote();
+  if (gAuth.connected) gSaveToDrive(false);
+};
+var _origDeleteNote = deleteNote;
+deleteNote = function(id) {
+  _origDeleteNote(id);
+  if (gAuth.connected) gSaveToDrive(false);
+};
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./logos-sw.js').catch(()=>{});
+}
+</script>
+</html>

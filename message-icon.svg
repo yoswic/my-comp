@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#111111"/>
+  <text x="52" y="185" font-family="Syne, Arial Black, sans-serif" font-weight="800" font-size="130" fill="#ffffff" letter-spacing="-3">THE</text>
+  <text x="52" y="305" font-family="Syne, Arial Black, sans-serif" font-weight="800" font-size="130" fill="#ffffff" letter-spacing="-3">MES</text>
+  <text x="52" y="425" font-family="Syne, Arial Black, sans-serif" font-weight="800" font-size="130" fill="#ffffff" letter-spacing="-3">SAGE</text>
+  <rect x="52" y="446" width="410" height="7" fill="#ffffff"/>
+</svg>
