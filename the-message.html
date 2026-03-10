@@ -2136,13 +2136,11 @@ async function loadLesson(){
   document.getElementById('learnRef').textContent=pick.ref;
   document.getElementById('learnInsight').innerHTML='<div style="display:flex;gap:8px;align-items:center;color:var(--t3);font-size:13px;"><div class="spinner"></div> Loading devotion...</div>';
   try{
-    const prompt=`You are a Bible devotion writer. Respond ONLY with a valid JSON object. No markdown, no code blocks, no extra text. Use double quotes only. Escape any apostrophes inside strings as \\'.
+    const prompt=`Respond ONLY with this JSON, no other text:
+{"devotion":"2-3 sentence devotion for ${pick.ref}","reflection":["Question 1?","Question 2?","Question 3?"],"context":"1 sentence context"}
 
-Verse: ${pick.ref} - ${pick.text}
-
-Respond exactly in this format:
-{"devotion":"Write 3-4 sentences of deep personal devotion here","reflection":["Reflection question 1?","Reflection question 2?","Reflection question 3?"],"context":"Write 1-2 sentences of historical context here"}`;
-    const reply=await claude('', prompt, 1000);
+Verse: ${pick.ref} - ${pick.text.replace(/"/g,"'")}`;
+    const reply=await claude('', prompt, 1500);
     // Robust JSON extraction and sanitization
     let clean=reply.replace(/```json|```/g,'').trim();
     const start=clean.indexOf('{');
