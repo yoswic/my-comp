@@ -1189,7 +1189,7 @@ async function claude(system, user, max=1000) {
         'X-Title': 'The Message'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.3-70b-instruct:free',
+        model: 'google/gemini-2.5-flash-lite-preview-06-17:free',
         max_tokens: max,
         messages: [{ role: 'user', content: content }]
       })
