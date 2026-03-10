@@ -1189,7 +1189,7 @@ async function claude(system, user, max=1000) {
         'X-Title': 'The Message'
       },
       body: JSON.stringify({
-        model: 'mistralai/mistral-small-3.1-24b-instruct:free',
+        model: 'openrouter/free',
         max_tokens: max,
         messages: [{ role: 'user', content: content }]
       })
