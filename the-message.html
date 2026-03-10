@@ -1264,7 +1264,7 @@ async function doTranslate(){
   if(rw) rw.style.display='block';
   if(iw) iw.style.display='none';
   try{
-    const sys=`Translate this Indonesian text to English. Use ONLY a ${tone.toLowerCase()} tone. Output the translation ONLY — one version, no labels, no alternatives, no explanation.`;
+    const sys=`Translate this Indonesian text to English with a ${tone.toLowerCase()} tone. Write only the translation, nothing else.`;
     const reply=await claude(sys,text);
     result.className='trans-result-text';
     var cb=document.getElementById('transCopyBtn');
@@ -1469,13 +1469,11 @@ async function doQuote(){
   window.collapseCard();
   status.dataset.done=''; status.innerHTML='<div class="spinner"></div> Generating...';
   try{
-    const sys=`Write ONE ${tone.toLowerCase()} Christian quote (1-3 sentences) based on the input. Respond with exactly two lines only. First line: the quote text. Second line: SOURCE: [Bible reference or Personal Reflection]. No other text, no labels, no extra lines.`;
+    const sys=`Write a short powerful Christian quote inspired by the input. Tone: ${tone.toLowerCase()}. Output the quote text only. No attribution, no labels, no source.`;
     const reply=await claude(sys,text);
-    const lines=reply.trim().split('\n').map(l=>l.trim()).filter(l=>l);
-    const srcLine=lines.find(l=>/^SOURCE:/i.test(l))||'';
-    const q=lines.filter(l=>!/^SOURCE:/i.test(l)).join(' ').replace(/^["\u201c]|["\u201d]$/g,'').trim();
-    const src=srcLine.replace(/^SOURCE:/i,'').trim();
-    qCards.unshift({text:'\u201c'+q+'\u201d',src:src?'\u2014 '+src:'',tone});
+    const q=reply.trim().replace(/^["\u201c]|["\u201d]$/g,'').trim();
+    const src='';
+    qCards.unshift({text:'\u201c'+q+'\u201d',src:'',tone});
     renderCarousel();
     status.dataset.done='1'; status.innerHTML='\u2736 Done';
     setTimeout(()=>{ window.restoreInputCard(); status.innerHTML=''; }, 1000);
@@ -1519,14 +1517,14 @@ async function doQuote2(){
   if(src) src.textContent='';
   btn.disabled=true;
   try{
-    const sys=`Write ONE ${tone.toLowerCase()} Christian quote (1-3 sentences) based on the input. Respond with exactly two lines only. First line: the quote text. Second line: SOURCE: [Bible reference or Personal Reflection]. No other text, no labels, no extra lines.`;
+    const sys=`Write a short powerful Christian quote inspired by the input. Tone: ${tone.toLowerCase()}. Output the quote text only. No attribution, no labels, no source.`;
     const reply=await claude(sys,text);
-    const lines=reply.trim().split('\n').map(l=>l.trim()).filter(l=>l);
-    const srcLine=lines.find(l=>/^SOURCE:/i.test(l))||'';
-    const q=lines.filter(l=>!/^SOURCE:/i.test(l)).join(' ').replace(/^["\u201c]|["\u201d]$/g,'').trim();
-    const s=srcLine.replace(/^SOURCE:/i,'').trim();
+    const q=reply.trim().replace(/^["\u201c]|["\u201d]$/g,'').trim();
+    const s='';
     result.className='qp2-quote-text';
     result.textContent='\u201c'+q+'\u201d';
+    adjustQuoteFontSize(result);
+    if(src) src.textContent='';
     adjustQuoteFontSize(result);
     if(src) src.textContent=s?'\u2014 '+s:'';
   }catch(e){
