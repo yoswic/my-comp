@@ -39,15 +39,16 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
 
 /* ─── GLOBAL TOPBAR — blur melting ─── */
 .topbar-float{
-  position:sticky;top:0;z-index:300;
-  backdrop-filter:blur(40px) saturate(1.6);
-  -webkit-backdrop-filter:blur(40px) saturate(1.6);
-  background:rgba(255,255,255,0.75);
-  -webkit-mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
-  mask-image:linear-gradient(to bottom, black 65%, transparent 100%);
-  padding:calc(14px + var(--safe-top)) 20px 14px;
+  position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(30px) saturate(1.5);
+  -webkit-backdrop-filter:blur(30px) saturate(1.5);
+  background:rgba(255,255,255,0.8);
+  -webkit-mask-image:linear-gradient(to bottom, black 45%, transparent 100%);
+  mask-image:linear-gradient(to bottom, black 45%, transparent 100%);
+  padding:calc(14px + var(--safe-top)) 20px 140px;
   display:flex;align-items:center;justify-content:space-between;
   pointer-events:none;border:none;
+  margin-bottom:-126px;
 }
 .topbar-float>*{pointer-events:auto;}
 .tb-title{
@@ -60,7 +61,13 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
 .screen.active{display:flex;}
 
 /* ─── ASK SCREEN ─── */
-#s-ask{background:#fff;}
+#s-ask{background:#fff;position:relative;}
+#s-ask::after{
+  content:'';position:fixed;bottom:0;left:0;right:0;
+  height:calc(160px + var(--safe-bottom));
+  background:linear-gradient(to top, rgba(255,255,255,1) 30%, transparent 100%);
+  pointer-events:none;z-index:200;
+}
 .chat-wrap{flex:1;display:flex;flex-direction:column;padding:16px 20px 10px;gap:12px;overflow-y:auto;}
 .msg{display:flex;flex-direction:column;gap:3px;}
 .msg.user{align-items:flex-end;}
@@ -75,22 +82,31 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
 .ask-input-bar{
   position:fixed;bottom:calc(80px + var(--safe-bottom) + 10px);
   left:50%;transform:translateX(-50%);
-  width:min(460px,100%);z-index:250;padding:0 16px;display:none;
+  width:min(460px,100%);z-index:400;padding:0 16px;display:none;
 }
 .ask-input-bar.visible{display:block;}
 .cir{display:flex;gap:8px;align-items:flex-end;}
-.ci{
-  flex:1;background:rgba(255,255,255,0.85);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,0.92);
-  border-radius:999px;font-size:14px;font-family:var(--sans);
-  padding:11px 18px;color:var(--t1);outline:none;resize:none;
-  min-height:44px;max-height:44px;line-height:1.4;
-  overflow-x:auto;overflow-y:hidden;white-space:nowrap;
-  box-shadow:0 2px 10px rgba(0,0,0,0.06);
-  transition:border-color .2s;
+.ci-wrap{
+  flex:1;background:rgba(255,255,255,0.9);
+  border:1.5px solid rgba(0,0,0,0.08);
+  border-radius:999px;
+  box-shadow:0 1px 4px rgba(0,0,0,0.06);
+  display:flex;align-items:center;
+  padding:0 20px;height:44px;overflow:hidden;
 }
-.ci:focus{border-color:rgba(0,0,0,0.3);}
+.ci-wrap:focus-within{border-color:rgba(0,0,0,0.18);}
+.ci{
+  width:100%;background:none;
+  border:none!important;box-shadow:none!important;
+  outline:none!important;-webkit-tap-highlight-color:transparent;
+  border-radius:0;
+  font-family:var(--sans);padding:0;font-size:14px;
+  color:var(--t1);resize:none;
+  overflow-x:auto;overflow-y:hidden;white-space:nowrap;
+  line-height:normal;box-sizing:border-box;
+  -webkit-appearance:none!important;appearance:none!important;
+}
+.ci:focus,.ci:active{outline:none!important;border:none!important;box-shadow:none!important;}
 .ci::placeholder{color:var(--t3);}
 .sbtn{
   width:44px;height:44px;border-radius:50%;
@@ -537,7 +553,7 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
 .ltab.on{background:var(--accent);color:#fff;}
 
 /* ── LEARN REDESIGN ── */
-#s-learn{overflow:hidden;display:none;flex-direction:column;height:100dvh;padding-bottom:0!important;background:#f5f5f5;}
+#s-learn{overflow:visible;display:none;flex-direction:column;height:100dvh;padding-bottom:0!important;background:#f5f5f5;}
 #learnFloatHeader{
   position:fixed;top:0;left:50%;transform:translateX(-50%);
   width:min(460px,100%);z-index:500;
@@ -744,7 +760,7 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
 .ask-input-bar{position:fixed;top:calc(var(--safe-top) + 66px);left:50%;transform:translateX(-50%);width:min(460px,100%);z-index:250;padding:0 14px;display:none;}
 .ask-input-bar.visible{display:block;}
 .cir{display:flex;gap:8px;align-items:flex-end;}
-.ci{flex:1;background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.92);border-radius:999px;font-size:13px;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;padding:11px 18px;font-size:14px;color:var(--t1);outline:none;resize:none;min-height:44px;max-height:120px;box-shadow:0 2px 10px rgba(0,0,0,0.06);transition:border-color .2s,box-shadow .2s;line-height:1.4;}
+
 .ci:focus{border-color:rgba(0,0,0,0.3);box-shadow:0 0 0 3px rgba(0,0,0,0.05),0 2px 10px rgba(0,0,0,0.06);}
 .ci::placeholder{color:var(--t3);}
 .sbtn{width:44px;height:44px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.22);transition:transform .15s;flex-shrink:0;}
@@ -792,9 +808,11 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
     <button class="settings-btn" id="settingsBtn" onclick="openSettingsModal()">
       <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
     </button>
-    <textarea class="ci" id="chatInput" placeholder="Ask a question..." rows="1"
-      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"
-      oninput="autoResize(this)"></textarea>
+    <div class="ci-wrap">
+      <textarea class="ci" id="chatInput" placeholder="Ask a question..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"
+        oninput="autoResize(this)"></textarea>
+    </div>
     <button class="sbtn" onclick="sendChat()">
       <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     </button>
@@ -1040,8 +1058,8 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
           <div class="cal-verse-display">
             <div class="cal-verse-display-inner">
               <span class="cal-verse-display-mark">❝</span>
-              <div class="cal-verse-display-text" id="calPatternText">Those who hope in the Lord will renew their strength.</div>
-              <div class="cal-verse-display-ref" id="calPatternRef">Isaiah 40:31</div>
+              <div class="cal-verse-display-text" id="calPatternText">But seek first his kingdom and his righteousness, and all these things will be given to you as well.</div>
+              <div class="cal-verse-display-ref" id="calPatternRef">Matthew 6:33</div>
             </div>
           </div>
         </div>
@@ -1053,9 +1071,9 @@ body{font-family:var(--sans);font-weight:500;background:#fff;min-height:100vh;co
 </div>
 
 <!-- Journal modal -->
-<div id="journalModal" style="display:none;position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;padding:24px;">
-  <div id="journalBackdrop" onclick="closeJournal()" style="position:absolute;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);"></div>
-  <div class="journal-paper">
+<div id="journalModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">
+  <div onclick="closeJournal()" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);"></div>
+  <div class="journal-paper" style="position:relative;z-index:2;">
     <div class="journal-date" id="journalDateLabel"></div>
     <div class="journal-verse-mini" id="journalVerseMini"></div>
     <textarea class="journal-ta" id="journalTa" placeholder="Write what's on your heart..."></textarea>
@@ -1170,56 +1188,111 @@ function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrol
 
 let _t;
 function toast(msg){document.querySelector('.toast')?.remove();clearTimeout(_t);const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);_t=setTimeout(()=>t.remove(),2400);}
-function copyEl(id){navigator.clipboard.writeText(document.getElementById(id).textContent.trim()).then(()=>toast('Copied!')).catch(()=>toast('Failed to copy'));}
+function copyEl(id){
+  var text=document.getElementById(id).textContent.trim();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>toast('Copied!')).catch(()=>fallbackCopy(text));
+  }else{fallbackCopy(text);}
+}
+function fallbackCopy(text){
+  var ta=document.createElement('textarea');
+  ta.value=text;ta.style.cssText='position:fixed;top:-9999px;left:-9999px;opacity:0;';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');toast('Copied!');}catch(e){toast('Failed to copy');}
+  document.body.removeChild(ta);
+}
 
 function getApiKey() { return localStorage.getItem('tmsg_apikey') || ''; }
 
-async function claude(system, user, max=1000) {
+const FREE_MODELS = [
+  'openrouter/auto',
+  'openrouter/free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'meta-llama/llama-3.2-3b-instruct:free',
+  'meta-llama/llama-3.2-1b-instruct:free',
+  'mistralai/mistral-7b-instruct:free',
+  'mistralai/mistral-small-3.1-24b-instruct:free',
+  'mistralai/mistral-nemo:free',
+  'google/gemma-3-4b-it:free',
+  'google/gemma-3-12b-it:free',
+  'google/gemma-3-27b-it:free',
+  'google/gemma-2-9b-it:free',
+  'qwen/qwen3-8b:free',
+  'qwen/qwen3-14b:free',
+  'qwen/qwen2.5-7b-instruct:free',
+  'deepseek/deepseek-r1-0528-qwen3-8b:free',
+  'deepseek/deepseek-chat-v3-0324:free',
+  'microsoft/phi-4-reasoning-plus:free',
+  'microsoft/phi-3-mini-128k-instruct:free',
+  'nvidia/llama-3.1-nemotron-nano-8b-v1:free',
+  'tngtech/deepseek-r1t-chimera:free'
+];
+
+async function callOR(messages, max) {
   const key = getApiKey().trim();
   if (!key) throw new Error('OpenRouter API key not set — go to Settings!');
-  if (!key.startsWith('sk-')) throw new Error('Invalid API key format. Should start with sk-or-v1-...');
-  const content = system ? system + '\n\n' + user : user;
-  let r;
-  try {
-    r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + key,
-        'X-Title': 'The Message'
-      },
-      body: JSON.stringify({
-        model: 'openrouter/auto',
-        max_tokens: max,
-        messages: [{ role: 'user', content: content }]
-      })
-    });
-  } catch(e) { throw new Error('Network error — check your internet connection.'); }
-  const data = await r.json();
-  if (!r.ok || data.error) throw new Error(data.error?.message || JSON.stringify(data.error) || 'API error ' + r.status);
-  return data.choices?.[0]?.message?.content || '';
+  let lastErr = '';
+  for (let m = 0; m < FREE_MODELS.length; m++) {
+    try {
+      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','Authorization':'Bearer '+key,'X-Title':'The Message'},
+        body: JSON.stringify({model: FREE_MODELS[m], max_tokens: max, messages: messages})
+      });
+      const data = await r.json();
+      if (data.error) {
+        lastErr = data.error?.message || JSON.stringify(data.error);
+        continue; // any error -> next model immediately
+      }
+      const text = data.choices?.[0]?.message?.content;
+      if (text && text.trim()) return text;
+      lastErr = 'Empty response';
+    } catch(e) {
+      lastErr = e.message || 'Network error';
+    }
+  }
+  throw new Error('Try again in a moment.');
+}
+
+async function claude(system, user, max=1000) {
+  const prompt = system ? system + '\n\n' + user : user;
+  return callOR([{role:'user', content: prompt}], max);
+}
+
+async function claudeFree(prompt, max=1000) {
+  return callOR([{role:'user', content: prompt}], max);
 }
 
 // ── CHAT ──
 const hist=[];
+function scrollToBottom(){
+  const w=document.getElementById('chatWrap');
+  if(!w) return;
+  const msgs=w.querySelectorAll('.msg');
+  if(msgs.length===0) return;
+  msgs[msgs.length-1].scrollIntoView({behavior:'smooth', block:'end'});
+}
 function addMsg(role,text){
   const w=document.getElementById('chatWrap');
   const long=text.length>60;
   const d=document.createElement('div');d.className='msg '+(role==='user'?'user':'ai');
   d.innerHTML=`<div class="msg-label">${role==='user'?'You':'Logos'}</div><div class="msg-bubble${long?' long':''}">${text.replace(/\n/g,'<br>')}</div>`;
-  w.appendChild(d);w.scrollTop=w.scrollHeight;
+  w.appendChild(d);
+  requestAnimationFrame(()=>scrollToBottom());
 }
 function addThink(){
   const w=document.getElementById('chatWrap');const d=document.createElement('div');d.className='msg ai';d.id='thinkEl';
   d.innerHTML='<div class="msg-label">Logos</div><div class="thinking"><div class="td"></div><div class="td"></div><div class="td"></div></div>';
-  w.appendChild(d);w.scrollTop=w.scrollHeight;
+  w.appendChild(d);
+  requestAnimationFrame(()=>scrollToBottom());
 }
 async function sendChat(){
   const inp=document.getElementById('chatInput');const text=inp.value.trim();if(!text)return;
   inp.value='';inp.style.height='auto';addMsg('user',text);hist.push({role:'user',content:text});addThink();
   try{
     const sys=`You are Logos, a warm and knowledgeable Bible study assistant. Help users understand Scripture by explaining verse meanings from original texts (Hebrew/Greek when relevant), providing cultural and historical context of biblical times, and explaining theological interpretations fairly. Use natural warm English. Answer in paragraphs, not bullet lists. Be humble and non-dogmatic.`;
-    const reply=await claude(sys, hist.map(m=>m.role+': '+m.content).join('\n'), 1000);
+    const reply=await claude(sys, hist.map(m=>m.role+': '+m.content).join('\n'), 4000);
     document.getElementById('thinkEl')?.remove();addMsg('ai',reply);hist.push({role:'assistant',content:reply});
   }catch(e){document.getElementById('thinkEl')?.remove();addMsg('ai','Error: '+e.message);}
 }
@@ -1265,13 +1338,13 @@ async function doTranslate(){
   if(iw) iw.style.display='none';
   try{
     const sys=`Translate this Indonesian text to English with a ${tone.toLowerCase()} tone. Write only the translation, nothing else.`;
-    const reply=await claude(sys,text);
+    const reply=await claude(sys,text,300);
     result.className='trans-result-text';
     var cb=document.getElementById('transCopyBtn');
     if(cb) cb.style.display='block';result.textContent=reply;
     result.className='trans-result-text';
     adjustTransFontSize(result);
-  }catch(e){result.className='trans-result-text empty';result.textContent='Something went wrong. Try again.';}
+  }catch(e){result.className='trans-result-text empty';result.innerHTML='<span style="color:var(--t3);font-size:15px;">Error — <span onclick="doTranslate()" style="color:#fff;font-weight:700;cursor:pointer;text-decoration:underline;">Try again</span></span>';}
   btn.disabled=false;btn.textContent='Translate';
   // show copy btn
   var cb=document.getElementById('transCopyBtn');if(cb)cb.style.color='rgba(255,255,255,0.5)';
@@ -1470,7 +1543,7 @@ async function doQuote(){
   status.dataset.done=''; status.innerHTML='<div class="spinner"></div> Generating...';
   try{
     const sys=`Write a short powerful Christian quote inspired by the input. Tone: ${tone.toLowerCase()}. Output the quote text only. No attribution, no labels, no source.`;
-    const reply=await claude(sys,text);
+    const reply=await claude(sys,text,300);
     const q=reply.trim().replace(/^["\u201c]|["\u201d]$/g,'').trim();
     const src='';
     qCards.unshift({text:'\u201c'+q+'\u201d',src:'',tone});
@@ -1478,7 +1551,7 @@ async function doQuote(){
     status.dataset.done='1'; status.innerHTML='\u2736 Done';
     setTimeout(()=>{ window.restoreInputCard(); status.innerHTML=''; }, 1000);
   }catch(e){
-    toast('Something went wrong. Try again.');
+    toast('Error — tap Generate to try again.');
     window.restoreInputCard();
   }
   btn.disabled=false; btn.textContent='Generate';
@@ -1518,7 +1591,7 @@ async function doQuote2(){
   btn.disabled=true;
   try{
     const sys=`Write a short powerful Christian quote inspired by the input. Tone: ${tone.toLowerCase()}. Output the quote text only. No attribution, no labels, no source.`;
-    const reply=await claude(sys,text);
+    const reply=await claude(sys,text,300);
     const q=reply.trim().replace(/^["\u201c]|["\u201d]$/g,'').trim();
     const s='';
     result.className='qp2-quote-text';
@@ -1529,7 +1602,7 @@ async function doQuote2(){
     if(src) src.textContent=s?'\u2014 '+s:'';
   }catch(e){
     result.className='qp2-quote-text loading';
-    result.textContent='Something went wrong. Try again.';
+    result.innerHTML='<span style="font-size:16px;font-weight:600;">Error — <span onclick="doQuote2()" style="text-decoration:underline;cursor:pointer;">Try again</span></span>';
   }
   btn.disabled=false;
 }
@@ -2053,13 +2126,10 @@ function selectDay(d){
 }
 
 function showCalVerse(){
-  var v = verseForDay(calYear, calMonth, calSelected||1);
-  // Update the big typographic display
   var pt = document.getElementById('calPatternText');
   var pr = document.getElementById('calPatternRef');
-  if(pt) pt.textContent = v.text.replace(/^[""]|[""]$/g,'');
-  if(pr) pr.textContent = v.ref;
-  // Update stats
+  if(pt) pt.textContent = 'But seek first his kingdom and his righteousness, and all these things will be given to you as well.';
+  if(pr) pr.textContent = 'Matthew 6:33';
   updateCalStats();
 }
 
@@ -2086,26 +2156,42 @@ function updateCalStats(){
   if(nn) nn.textContent=notesCount;
 }
 
+function verseForDay(y,m,d){
+  // Pick a consistent verse for a given date using hash
+  var hash = (y * 366 + m * 31 + d) % verses.length;
+  return verses[Math.abs(hash)];
+}
+
 function openJournal(y,m,d){
-  var modal = document.getElementById('journalModal');
-  var dateLabel = document.getElementById('journalDateLabel');
-  var verseMini = document.getElementById('journalVerseMini');
-  var ta = document.getElementById('journalTa');
-  if(!modal) return;
-  var months = MONTHS;
-  if(dateLabel) dateLabel.textContent = d+' '+months[m]+' '+y;
+  // Remove any existing modal
+  var old = document.getElementById('journalModal');
+  if(old) old.parentNode.removeChild(old);
+
   var v = verseForDay(y,m,d);
-  if(verseMini) verseMini.textContent = v.text+' — '+v.ref;
-  if(ta) ta.value = getJournal(y,m,d);
-  modal.style.display='flex';
-  document.body.style.overflow='hidden';
-  if(ta) setTimeout(function(){ta.focus();},100);
+  var saved = getJournal(y,m,d);
+  var dateStr = d+' '+MONTHS[m]+' '+y;
+
+  var modal = document.createElement('div');
+  modal.id = 'journalModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;';
+
+  modal.innerHTML = '<div onclick="closeJournal()" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);"></div>'
+    + '<div class="journal-paper" style="position:relative;z-index:2;">'
+    + '<div class="journal-date">'+dateStr+'</div>'
+    + '<div class="journal-verse-mini">'+v.text+' — '+v.ref+'</div>'
+    + '<textarea class="journal-ta" id="journalTa" placeholder="Write what&#39;s on your heart...">'+saved+'</textarea>'
+    + '<div class="journal-footer">'
+    + '<button class="journal-clear" onclick="clearJournalEntry()">Clear</button>'
+    + '<button class="journal-save" onclick="saveJournalEntry()">Save</button>'
+    + '</div></div>';
+
+  document.body.appendChild(modal);
+  setTimeout(function(){ var ta=document.getElementById('journalTa'); if(ta) ta.focus(); }, 100);
 }
 
 function closeJournal(){
   var modal = document.getElementById('journalModal');
-  if(modal) modal.style.display='none';
-  document.body.style.overflow='';
+  if(modal) modal.parentNode.removeChild(modal);
 }
 
 function clearJournalEntry(){var ta=document.getElementById('journalTa');if(ta)ta.value='';}
@@ -2134,28 +2220,43 @@ async function loadLesson(){
   const pick=getNextVerse();
   document.getElementById('learnVerse').textContent=pick.text;
   document.getElementById('learnRef').textContent=pick.ref;
-  document.getElementById('learnInsight').innerHTML='<div style="display:flex;gap:8px;align-items:center;color:var(--t3);font-size:13px;"><div class="spinner"></div> Loading devotion...</div>';
+  learnData={devotion:'',reflection:[],context:''};
+  const el=document.getElementById('learnInsight');
+  const ref=pick.ref, txt=pick.text.replace(/"/g,"'");
+  function spin(msg){el.innerHTML='<div style="display:flex;gap:8px;align-items:center;color:var(--t3);font-size:13px;"><div class="spinner"></div>'+msg+'</div>';}
+  function showErr(){el.innerHTML='<div style="color:var(--t3);font-size:13px;">Error — <span onclick="learnLoaded=false;loadLesson()" style="color:#111;font-weight:700;cursor:pointer;text-decoration:underline;">Try again</span></div>';learnLoaded=false;}
+  spin('Loading devotion...');
   try{
-    const prompt=`Respond ONLY with this JSON, no other text:
-{"devotion":"2-3 sentence devotion for ${pick.ref}","reflection":["Question 1?","Question 2?","Question 3?"],"context":"1 sentence context"}
-
-Verse: ${pick.ref} - ${pick.text.replace(/"/g,"'")}`;
-    const reply=await claude('', prompt, 1500);
-    // Robust JSON extraction and sanitization
-    let clean=reply.replace(/```json|```/g,'').trim();
-    const start=clean.indexOf('{');
-    const end=clean.lastIndexOf('}');
-    clean=clean.slice(start,end+1);
-    // Fix common issues: smart quotes, unescaped apostrophes in values
-    clean=clean.replace(/[‘’]/g,"'").replace(/[“”]/g,'"');
-    learnData=JSON.parse(clean);
-    showTab(learnTab);
-  }catch(e){
-    document.getElementById('learnInsight').innerHTML='<div style="color:var(--t3);font-size:13px;">Error: '+e.message+' — <span onclick="learnLoaded=false;loadLesson()" style="color:#111;font-weight:700;cursor:pointer;text-decoration:underline;">Try again</span></div>';
-    console.error('loadLesson error:',e);
+    const r=await claudeFree('You are a devotional writer. Write a rich, warm 4-5 sentence devotion based on '+ref+': "'+txt+'". Be specific to the verse, spiritually meaningful, and personal. Output only the devotion text, no title, no label, no attribution.',1000);
+    learnData.devotion=r.trim();
+    if(learnTab==='verse')showTab('verse');
+  }catch(e){showErr();return;}
+  try{
+    const r=await claudeFree('Write 3 meaningful personal reflection questions based on '+ref+': "'+txt+'". Questions should be deep and personal, not generic. Output ONLY valid JSON array: ["Question 1?","Question 2?","Question 3?"] — nothing else before or after.',150);
+    let c=r.replace(/```json|```/g,'').trim();
+    const s=c.indexOf('['),e2=c.lastIndexOf(']');
+    if(s>=0&&e2>s)learnData.reflection=JSON.parse(c.slice(s,e2+1));
+    else learnData.reflection=['What does this mean to you?','How can you apply this today?','What does this show about God?'];
+    if(learnTab==='reflection')showTab('reflection');
+  }catch(e){learnData.reflection=['What does this mean to you?','How can you apply this today?','What does this show about God?'];}
+  try{
+    const r=await claudeFree('Write 2-3 sentences of historical and cultural context for '+ref+': "'+txt+'". Include who wrote it, when, and why it matters. Output only the context text, no labels.',400);
+    learnData.context=r.trim();
+    if(learnTab==='context')showTab('context');
+  }catch(e){learnData.context='Historical context unavailable.';}
+}
+function switchLearnTab(btn,tab){
+  document.querySelectorAll('.learn-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');learnTab=tab;
+  if(!learnData){return;}
+  if(tab==='verse'&&learnData.devotion)showTab(tab);
+  else if(tab==='reflection'&&learnData.reflection&&learnData.reflection.length)showTab(tab);
+  else if(tab==='context'&&learnData.context)showTab(tab);
+  else{
+    var el=document.getElementById('learnInsight');
+    if(el)el.innerHTML='<div style="display:flex;gap:8px;align-items:center;color:var(--t3);font-size:13px;"><div class="spinner"></div> Loading...</div>';
   }
 }
-function switchLearnTab(btn,tab){document.querySelectorAll('.learn-tab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');learnTab=tab;if(learnData)showTab(tab);}
 function switchTab(btn,tab){switchLearnTab(btn,tab);}
 function showTab(tab){
   const lbl=document.getElementById('learnInsightLabel'),el=document.getElementById('learnInsight');if(!learnData)return;
