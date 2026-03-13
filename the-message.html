@@ -2602,7 +2602,7 @@ function saveApiKey() {
 document.addEventListener('DOMContentLoaded', function(){ updateDriveStatusLabel(); });
 
 if('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./the-message-sw.js').catch(()=>{});
+  navigator.serviceWorker.register('./the-message-sw.js', {scope: './the-message.html'}).catch(()=>{});
 }
 </script>
 

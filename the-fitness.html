@@ -2451,7 +2451,7 @@ init();renderAll();
 
 // PWA
 if('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./fitness-sw.js').catch(()=>{});
+  navigator.serviceWorker.register('./fitness-sw.js', {scope: './the-fitness.html'}).catch(()=>{});
 }
 </script>
 </body>

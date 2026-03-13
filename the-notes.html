@@ -3306,7 +3306,7 @@ ra();
 // PWA Service Worker
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./notes-sw.js');
+    navigator.serviceWorker.register('./notes-sw.js', {scope: './the-notes.html'}).catch(()=>{});
   });
 }
 

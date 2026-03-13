@@ -3261,7 +3261,7 @@ function formatMonthLabel(ym) {
 
 <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./finance-swiss-sw.js').catch(()=>{});
+  navigator.serviceWorker.register('./finance-swiss-sw.js', {scope: './finance-swiss.html'}).catch(()=>{});
 }
 </script>
 </body>
